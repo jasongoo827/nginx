@@ -8,7 +8,7 @@ CFLAGS = -Wall -Werror -Wextra -MMD -MP -std=c++98
 
 RM = rm -f
 
-SRCS = Client.cpp
+SRCS = EchoClient.cpp
 
 OBJS = $(SRCS:%.cpp=%.o)
 

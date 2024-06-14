@@ -5,6 +5,14 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
+// 3629 - utf8 encoding
+// 3875 - cgi
+// 3986 - uri
+// 5234, 7405 - BNF
+// 8174 - Upper, Lower
+// 9110, 9111, 9112 - HTTP
+
+
 int main(int argc, char *argv[])
 {
 	if (argc != 2)
@@ -13,7 +21,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	char buffer[256];
+	char buffer[1024];
 
 	struct sockaddr_in addr_serv;
 	struct sockaddr_in addr_client;
@@ -56,7 +64,7 @@ int main(int argc, char *argv[])
 
 	while (1)
 	{
-		memset(buffer, 0, 256);
+		memset(buffer, 0, 1024);
 		int read_chk = read(sock_client, buffer, sizeof(buffer) - 1);
 		if (read_chk == -1)
 		{
@@ -65,7 +73,8 @@ int main(int argc, char *argv[])
 		}
 		buffer[strlen(buffer)] = '\n';
 		std::cout << buffer;
-		int write_chk = write(sock_client, buffer, strlen(buffer));
+		char tmp[256] = "\r\n\r\n<h1>My home page.</h1>\r\n\r\n\0";
+		int write_chk = write(sock_client, tmp, strlen(tmp));
 		if (write_chk == -1)
 		{
 			std::cerr << "write error\n";
