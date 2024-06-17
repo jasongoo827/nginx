@@ -3,9 +3,13 @@
 
 #include <iostream>
 #include <vector>
+#include <fstream>
+#include <sstream>
+#include "../Utils.hpp"
+#include <stdlib.h>
 
 class Server;
-class Locate;
+class Status;
 
 class Config
 {
@@ -15,12 +19,15 @@ public:
 	Config& operator=(const Config& rhs);
 	~Config();
 
+	Status 		ReadConfig(std::string& file);
+	bool		CheckExtension(std::string& file);
+
 private:
-	double				http_ver;
-	double				cgi_ver;
+	std::vector<Server>	server_vec;
 	std::string			software_name;
 	std::string			software_ver;
-	std::vector<Server>	server_vec;
+	std::string			http_ver;
+	std::string			cgi_ver;
 };
 
 #endif
