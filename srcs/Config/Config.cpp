@@ -1,24 +1,27 @@
-#include <Config.hpp>
+#include "Config.hpp"
 #include "../Status.hpp"
+#include "Server.hpp"
 
-Config::Config()
-{
+Config::Config() {}
 
-}
-
-Config::Config(const Config& other)
-{
-
-}
+Config::Config(const Config& other): server_vec(other.server_vec), software_name(other.software_name), 
+software_ver(other.software_ver), http_ver(other.http_ver), cgi_ver(other.cgi_ver) {}
 
 Config& Config::operator=(const Config& rhs)
 {
-	
+	if (this == &rhs)
+		return (*this);
+	server_vec = rhs.server_vec;
+	software_name = rhs.software_name;
+	software_ver = rhs.software_ver;
+	http_ver = rhs.http_ver;
+	cgi_ver = rhs.cgi_ver;
+	return (*this);
 }
 
 Config::~Config()
 {
-	
+	server_vec.clear();
 }
 
 Status Config::ReadConfig(std::string& file)
@@ -43,42 +46,11 @@ Status Config::ReadConfig(std::string& file)
 	std::string file_content(buffer);
 	delete []buffer;
 
-	// parsing error
-	std::istringstream iss(file_content);
-	std::string str;
-	while (getline(iss, str, '\n'))
-	{
-		std::vector<std::string> token_vec;
-		if (str.find("SOFTWARE_NAME"))
-		{
-			token_vec = utils::SplitToVector(str);
-			if (token_vec.size() != 2)
-				return Status::Error("Parsing error");
-			this->software_name = token_vec.back();
-		}
-		else if (str.find("SOFTWARE_VERSION"))
-		{
-			token_vec = utils::SplitToVector(str);
-			if (token_vec.size() != 2)
-				return Status::Error("Parsing error");
-			this->software_ver= token_vec.back();
-		}
-		else if (str.find("HTTP_VERSION"))
-		{
-			token_vec = utils::SplitToVector(str);
-			if (token_vec.size() != 2)
-				return Status::Error("Parsing error");
-			this->http_ver= token_vec.back();
-		}
-		else if (str.find("CGI_VERSION"))
-		{
-			token_vec = utils::SplitToVector(str);
-			if (token_vec.size() != 2)
-				return Status::Error("Parsing error");
-			this->cgi_ver= token_vec.back();
-		}
-	}
-	
+	// parse config file
+	Status status = ParseConfig(file_content);
+	if (!status.ok())
+		return Status::Error(status.message());
+	return Status::OK();
 }
 
 bool Config::CheckExtension(std::string& file)
@@ -86,4 +58,62 @@ bool Config::CheckExtension(std::string& file)
 	if (file.find(".conf") != std::string::npos && file.find(".conf") == file.rfind(".conf"))
 		return true;
 	return false;
+}
+
+Status Config::ParseConfig(std::string& file)
+{
+	std::istringstream iss(file);
+	std::string str;
+	Status status;
+	while (getline(iss, str, '\n'))
+	{
+		std::vector<std::string> token_vec;
+		if (str.find("SOFTWARE_NAME"))
+			status = utils::ParseVariable(this->software_name, str);
+		else if (str.find("SOFTWARE_VERSION"))
+			status = utils::ParseVariable(this->software_ver, str);
+		else if (str.find("HTTP_VERSION"))
+			status = utils::ParseVariable(this->http_ver, str);
+		else if (str.find("CGI_VERSION"))
+			status = utils::ParseVariable(this->cgi_ver, str);
+		else if (str.find("server"))
+		{
+			std::string server_block = ExtractServerBlock(file);
+			if (server_block.empty())
+				return Status::Error("Parsing error");
+			Server server;
+			status = server.ParseServerBlock(server_block);
+			if (status.ok())
+				server_vec.push_back(server);
+		}
+		else
+			return Status::Error("Parsing error");
+		// 중복 체크, 유효성 체크
+		if (!status.ok())
+			return Status::Error(status.message());
+	}
+	return Status::OK();
+}
+
+std::string Config::ExtractServerBlock(std::string& file)
+{
+	std::string start_token = "server {";
+	size_t start_pos = file.find(start_token);
+	if (start_pos == std::string::npos)
+		return "";
+	size_t end_pos = start_pos + start_token.length();
+	// 엄밀한 확인 필요
+	size_t eof = start_pos == file.rfind(start_token) ? file.length() : file.find(start_token, start_pos + 1);
+	int brace_count = 1;
+	while (end_pos < eof && brace_count > 0)
+	{
+		if (file[end_pos] == '{')
+			brace_count++;
+		else if (file[end_pos] == '}')
+			brace_count--;
+		end_pos++;
+	}
+	if (brace_count != 0 || end_pos != file.length())
+		return "";
+	return file.substr(start_pos, end_pos - start_pos);
 }

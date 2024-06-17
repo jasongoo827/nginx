@@ -1,6 +1,8 @@
 #include "Status.hpp"
 
-Status Status::OK(void) { return Status("");}
+Status::Status() {}
+
+Status Status::OK(void) { return Status();}
 
 Status Status::Error(const std::string& message) { return Status(message); }
 

@@ -21,6 +21,8 @@ public:
 
 	Status 		ReadConfig(std::string& file);
 	bool		CheckExtension(std::string& file);
+	Status		ParseConfig(std::string& file);
+	std::string	ExtractServerBlock(std::string& file);
 
 private:
 	std::vector<Server>	server_vec;

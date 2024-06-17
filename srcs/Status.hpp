@@ -6,6 +6,7 @@
 class Status
 {
 public:
+	Status();
 	static 	Status OK(void);
 	static 	Status Error(const std::string& message);
 	static	Status create(const std::string& message);
