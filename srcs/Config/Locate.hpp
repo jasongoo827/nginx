@@ -4,6 +4,9 @@
 #include <iostream>
 #include <vector>
 #include <utility>
+#include <sstream>
+
+class Status;
 
 class Locate
 {
@@ -13,7 +16,11 @@ public:
 	Locate& operator=(const Locate& rhs);
 	~Locate();
 
+	Status 		ParseLocateBlock(std::istringstream& iss, std::string& locate_block);
+	void		PrintLocateInfo(void);
+
 private:
+	std::string					locate_path;
 	std::vector<std::string> 	method_vec;
 	std::vector<std::string> 	index_vec;
 	std::pair<int, std::string> redirect_pair;

@@ -3,6 +3,7 @@
 
 int main(int argc, char *argv[], char *envp[])
 {
+	(void)envp;
 	if (argc == 2)
 	{
 		std::string file(argv[1]);
@@ -13,6 +14,7 @@ int main(int argc, char *argv[], char *envp[])
 			std::cerr << status.message() << '\n';
 			return (1);
 		}
+		config.PrintConfigInfo();
 	}
 	else
 	{

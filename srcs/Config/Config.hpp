@@ -23,6 +23,7 @@ public:
 	bool		CheckExtension(std::string& file);
 	Status		ParseConfig(std::string& file);
 	std::string	ExtractServerBlock(std::string& file);
+	void		PrintConfigInfo(void);
 
 private:
 	std::vector<Server>	server_vec;

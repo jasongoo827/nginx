@@ -18,8 +18,9 @@ public:
 	Server& operator=(const Server& rhs);
 	~Server();
 
-	Status 		ParseServerBlock(std::string& server_block);
+	Status 		ParseServerBlock(std::istringstream& iss, std::string& server_block);
 	std::string	ExtractLocateBlock(std::string& server_block);
+	void		PrintServerInfo(void);
 
 private:
 	std::vector<Locate>			locate_vec;
