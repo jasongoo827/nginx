@@ -27,7 +27,7 @@ public:
 	void	set_method(enum Method type);
 	void	set_url(const std::string &url);
 	void	set_version(const std::string &version);
-	void	insert_header(const std::string &key, std::string &value);
+	void	set_header(std::map<std::string, std::string> &header);
 	void	set_body(const std::string &body);
 
 private:
