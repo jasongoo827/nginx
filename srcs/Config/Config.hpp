@@ -19,11 +19,17 @@ public:
 	Config& operator=(const Config& rhs);
 	~Config();
 
-	Status 		ReadConfig(std::string& file);
-	Status		ParseConfig(std::string& file);
-	Status		ParseServerVariable(std::string& file, std::istringstream& iss);
-	std::string	ExtractServerBlock(std::string& file);
-	void		PrintConfigInfo(void);
+	Status 				ReadConfig(std::string& file);
+	Status				ParseConfig(std::string& file);
+	Status				ParseServerVariable(std::string& file, std::istringstream& iss);
+	std::string 		ExtractServerBlock(std::istringstream& iss, std::string& first_line);
+	void				PrintConfigInfo(void);
+
+	std::vector<Server> GetServerVec(void) const;
+	std::string			GetSoftwareName(void) const;
+	std::string			GetSoftwareVer(void) const;
+	std::string			GetHttpVer(void) const;
+	std::string			GetCgiVer(void) const;
 
 private:
 	std::vector<Server>	server_vec;

@@ -78,7 +78,7 @@ Status Config::ParseConfig(std::string& file)
 		else if (utils::find(str, "CGI_VERSION"))
 			status = utils::ParseVariable(this->cgi_ver, str);
 		else if (utils::find(str, "server"))
-			status = ParseServerVariable(file, iss);
+			status = ParseServerVariable(str, iss);
 		else
 			return Status::Error("wrong config option error");
 		if (!status.ok())
@@ -87,42 +87,83 @@ Status Config::ParseConfig(std::string& file)
 	return Status::OK();
 }
 
-std::string Config::ExtractServerBlock(std::string& file)
+// std::string Config::ExtractServerBlock(std::string& file)
+// {
+// 	// std::cout << "Config::ExtractServerBlock\n";
+// 	std::string start_token = "server {";
+// 	size_t start_pos = file.find(start_token);
+// 	if (start_pos == std::string::npos)
+// 		return "";
+// 	size_t end_pos = start_pos + start_token.length();
+// 	// 엄밀한 확인 필요
+// 	size_t eof = (start_pos == file.rfind(start_token)) ? file.length() : \
+// 	file.find(start_token, start_pos + 1);
+// 	int brace_count = 1;
+// 	while (end_pos < eof && brace_count > 0)
+// 	{
+// 		if (file[end_pos] == '{')
+// 			brace_count++;
+// 		else if (file[end_pos] == '}')
+// 			brace_count--;
+// 		end_pos++;
+// 	}
+// 	if (brace_count != 0 || end_pos != file.length())
+// 		return "";
+// 	return file.substr(start_pos, end_pos - start_pos);
+// }
+
+std::string Config::ExtractServerBlock(std::istringstream& iss, std::string& first_line)
 {
-	// std::cout << "Config::ExtractServerBlock\n";
-	std::string start_token = "server {";
-	size_t start_pos = file.find(start_token);
-	if (start_pos == std::string::npos)
+	if (first_line != "server {")
 		return "";
-	size_t end_pos = start_pos + start_token.length();
-	// 엄밀한 확인 필요
-	size_t eof = (start_pos == file.rfind(start_token)) ? file.length() : \
-	file.find(start_token, start_pos + 1);
-	int brace_count = 1;
-	while (end_pos < eof && brace_count > 0)
+	std::string str;
+	std::string server_block = "";
+	while (getline(iss, str, '\n') && str != "}")
 	{
-		if (file[end_pos] == '{')
-			brace_count++;
-		else if (file[end_pos] == '}')
-			brace_count--;
-		end_pos++;
+		server_block += str;
+		server_block += "\n";
 	}
-	if (brace_count != 0 || end_pos != file.length())
-		return "";
-	return file.substr(start_pos, end_pos - start_pos);
+	return server_block;
 }
 
 Status Config::ParseServerVariable(std::string& file, std::istringstream& iss)
 {
-	std::string server_block = ExtractServerBlock(file);
+	std::string server_block = ExtractServerBlock(iss, file);
+	// std::cout << server_block << '\n';
 	if (server_block.empty())
 		return Status::Error("server block error");
 	Server server;
-	Status status = server.ParseServerBlock(iss, server_block);
+	Status status = server.ParseServerBlock(server_block);
 	if (status.ok())
 		this->server_vec.push_back(server);
 	return status;
 }
+
+std::vector<Server> Config::GetServerVec(void) const
+{
+	return server_vec;
+}
+
+std::string	Config::GetSoftwareName(void) const
+{
+	return software_name;
+}
+
+std::string	Config::GetSoftwareVer(void) const
+{
+	return software_ver;
+}
+
+std::string	Config::GetHttpVer(void) const
+{
+	return http_ver;
+}
+
+std::string	Config::GetCgiVer(void) const
+{
+	return cgi_ver;
+}
+
 
 void Config::PrintConfigInfo(void)
 {

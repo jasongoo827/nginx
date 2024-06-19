@@ -16,8 +16,21 @@ public:
 	Locate& operator=(const Locate& rhs);
 	~Locate();
 
-	Status 		ParseLocateBlock(std::string& locate_block);
-	void		PrintLocateInfo(void);
+	Status 						ParseLocateBlock(std::string& locate_block);
+	Status						ParseMethod(std::string& str);
+	Status						ParseRoot(std::string& str);
+	Status						ParseIndex(std::string& str);
+	Status						ParseAutoIndex(std::string& str);
+	Status						ParseFilePath(std::string& str);
+	void						PrintLocateInfo(void);
+
+	std::string					GetLocatePath(void) const;
+	std::vector<std::string> 	GetMethodVec(void) const;
+	std::vector<std::string> 	GetIndexVec(void) const;
+	std::pair<int, std::string> GetRedirectPair(void) const;
+	std::string 				GetRoot(void) const;
+	std::string 				GetFilePath(void) const;
+	bool 						GetAutoIndex(void) const;
 
 private:
 	std::string					locate_path;

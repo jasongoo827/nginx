@@ -29,10 +29,10 @@ Server::~Server()
 	error_page.clear();
 }
 
-Status Server::ParseServerBlock(std::istringstream& iss, std::string& server_block)
+Status Server::ParseServerBlock(std::string& server_block)
 {
 	// std::cout << "Server::ParseServerBlock\n";
-	// std::istringstream iss(server_block);
+	std::istringstream iss(server_block);
 	(void)server_block;
 	std::string str;
 	Status status;
@@ -41,10 +41,6 @@ Status Server::ParseServerBlock(std::istringstream& iss, std::string& server_blo
 		// std::cout << str << '\n';
 		if (str.find('#') != std::string::npos || str.empty() || utils::IsStrSpace(str))
 			continue;
-		if (str.find("server") != std::string::npos)
-			continue;
-		if (str.find("}") != std::string::npos)
-			break;
 		// line이 ';'으로 끝나는지 검사
 		if (str.find("location /") == std::string::npos && str[str.length() - 1] != ';')
 			return Status::Error("Parsing error");
@@ -128,6 +124,41 @@ std::string Server::ExtractLocateBlock(std::istringstream& iss, std::string& fir
 		locate_block += "\n";
 	}
 	return locate_block;
+}
+
+std::vector<Locate> Server::GetLocateVec(void) const
+{
+	return locate_vec;
+}
+
+std::map<int, std::string> Server::GetErrorPage(void) const
+{
+	return error_page;
+}
+
+std::string Server::GetHostIp(void) const
+{
+	return host_ip;
+}
+
+std::string Server::GetServerName(void) const
+{
+	return server_name;
+}
+
+std::string Server::GetCgiType(void) const
+{
+	return cgi_type;
+}
+
+int Server::GetPort(void) const
+{
+	return port;
+}
+
+int Server::GetClientBodySize(void) const
+{
+	return client_body_size;
 }
 
 void Server::PrintServerInfo(void)

@@ -37,56 +37,120 @@ Status Locate::ParseLocateBlock(std::string& locate_block)
 	while (getline(iss, str, '\n'))
 	{
 		// std::cout << str << '\n';
-		if (str.find('#') != std::string::npos || str.empty() || utils::IsStrSpace(str)) continue;
-		if (str.find("}") != std::string::npos) break;
-		if (str[str.length() - 1] != ';') return Status::Error("Parsing error");
-		else str.resize(str.length() - 1);
+		if (str.find('#') != std::string::npos || str.empty() || utils::IsStrSpace(str))
+			continue;
+		if (str[str.length() - 1] != ';')
+			return Status::Error("Parsing error");
+		else
+			str.resize(str.length() - 1);
 		if (utils::find(str, "limit_except"))
-		{
-			std::string cmp("limit_except");
-			status = utils::ParseVariable(this->method_vec, str, cmp);
-			if (status.ok())
-			{
-				for (size_t i = 0; i < this->method_vec.size(); ++i)
-				{
-					if (method_vec[i] != "POST" && method_vec[i] != "GET" && method_vec[i] != "DELETE")
-						return Status::Error("wrong method error");
-				}
-			}
-		}
+			status = ParseMethod(str);
 		else if (utils::find(str, "return"))
 			status = utils::ParseVariable(this->redirect_pair, str);
 		else if (utils::find(str, "root"))
-		{
-			status = utils::ParseVariable(this->root, str);
-			if (status.ok() && !utils::CheckFilePath(this->root))
-				return Status::Error("file path error");
-		}
+			status = ParseRoot(str);
 		else if (utils::find(str, "index"))
-		{
-			std::string cmp("index");
-			status = utils::ParseVariable(this->index_vec, str, cmp);
-		}
+			status = ParseIndex(str);
 		else if (utils::find(str, "autoindex"))
-		{
-			std::string tmp;
-			status = utils::ParseVariable(tmp, str);
-			if (status.ok())
-			{if (tmp == "ON" || tmp == "on") this->autoindex = true;
-			else if (tmp == "OFF" || tmp == "off") this->autoindex = false;
-			else return Status::Error("Parsing error");}
-		}
+			status = ParseAutoIndex(str);
 		else if (utils::find(str, "filepath"))
-		{
-			status = utils::ParseVariable(this->file_path, str);
-			if (status.ok() && !utils::CheckFilePath(this->root))
-				return Status::Error("Parsing error");
-		}
+			status = ParseFilePath(str);
 		if (!status.ok())
 			return Status::Error("Parsing error");
 	}
 	return Status::OK();
 }
+
+Status	Locate::ParseMethod(std::string& str)
+{
+	std::string cmp("limit_except");
+	Status status = utils::ParseVariable(this->method_vec, str, cmp);
+	if (status.ok())
+	{
+		for (size_t i = 0; i < this->method_vec.size(); ++i)
+		{
+			if (method_vec[i] != "POST" && method_vec[i] != "GET" && method_vec[i] != "DELETE")
+				return Status::Error("wrong method error");
+		}
+	}
+	return status;
+}
+
+Status	Locate::ParseRoot(std::string& str)
+{
+	Status status = utils::ParseVariable(this->root, str);
+	if (status.ok()/* && !utils::CheckFilePath(this->root)*/)
+		return Status::Error("file path error");
+	return status;
+}
+
+Status	Locate::ParseIndex(std::string& str)
+{
+	std::string cmp("index");
+	Status status = utils::ParseVariable(this->index_vec, str, cmp);
+	return status;
+}
+
+Status	Locate::ParseAutoIndex(std::string& str)
+{
+	std::string tmp;
+	Status status = utils::ParseVariable(tmp, str);
+	if (status.ok())
+	{
+		if (tmp == "ON" || tmp == "on")
+			this->autoindex = true;
+		else if (tmp == "OFF" || tmp == "off")
+			this->autoindex = false;
+		else
+			return Status::Error("Parsing error");
+	}
+	return status;
+}
+
+Status	Locate::ParseFilePath(std::string& str)
+{
+	Status status = utils::ParseVariable(this->file_path, str);
+	if (status.ok() /*&& !utils::CheckFilePath(this->root)*/)
+		return Status::Error("Parsing error");
+	return status;
+}
+
+std::string	Locate::GetLocatePath(void) const
+{
+	return locate_path;
+}
+
+std::vector<std::string> Locate::GetMethodVec(void) const
+{
+	return method_vec;
+}
+
+std::vector<std::string> Locate::GetIndexVec(void) const
+{
+	return index_vec;
+}
+
+std::pair<int, std::string> Locate::GetRedirectPair(void) const
+{
+	return redirect_pair;
+}
+
+std::string Locate::GetRoot(void) const
+{
+	return root;
+}
+
+std::string Locate::GetFilePath(void) const
+{
+	return file_path;
+}
+
+bool Locate::GetAutoIndex(void) const
+{
+	return autoindex;
+}
+
+
 
 void Locate::PrintLocateInfo(void)
 {
