@@ -20,8 +20,8 @@ public:
 	~Config();
 
 	Status 		ReadConfig(std::string& file);
-	bool		CheckExtension(std::string& file);
 	Status		ParseConfig(std::string& file);
+	Status		ParseServerVariable(std::string& file, std::istringstream& iss);
 	std::string	ExtractServerBlock(std::string& file);
 	void		PrintConfigInfo(void);
 

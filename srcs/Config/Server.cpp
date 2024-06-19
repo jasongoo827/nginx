@@ -39,83 +39,95 @@ Status Server::ParseServerBlock(std::istringstream& iss, std::string& server_blo
 	while (getline(iss, str, '\n'))
 	{
 		// std::cout << str << '\n';
-		if (str.find('#') != std::string::npos || str.empty() || utils::IsStrSpace(str)) continue;
-		if (str.find("server") != std::string::npos) continue;
-		if (str.find("}") != std::string::npos) break;
+		if (str.find('#') != std::string::npos || str.empty() || utils::IsStrSpace(str))
+			continue;
+		if (str.find("server") != std::string::npos)
+			continue;
+		if (str.find("}") != std::string::npos)
+			break;
 		// line이 ';'으로 끝나는지 검사
-		if (str.find("location /") == std::string::npos && str[str.length() - 1] != ';') return Status::Error("Parsing error");
-		else if (str[str.length() - 1] == ';') str.resize(str.length() - 1);
-		if (str.find("listen") != std::string::npos)
-		{
-			status = utils::ParseVariable(this->port, str);
-			// ushrt_max --> header 필요?
-			if (status.ok() && (this->port < 0 || this->port > USHRT_MAX))
-				return Status::Error("port number error");
-		}
-		else if (str.find("server_name") != std::string::npos)
+		if (str.find("location /") == std::string::npos && str[str.length() - 1] != ';')
+			return Status::Error("Parsing error");
+		else if (str[str.length() - 1] == ';')
+			str.resize(str.length() - 1);
+		if (utils::find(str, "listen"))
+			status = ParsePortVariable(str);
+		else if (utils::find(str, "server_name"))
 			status = utils::ParseVariable(this->server_name, str);
-		else if (str.find("error_page") != std::string::npos)
-		{
-			status = utils::ParseVariable(this->error_page, str);
-			if (status.ok())
-			{
-				for (std::map<int, std::string>::iterator it = this->error_page.begin(); it != this->error_page.end(); ++it)
-					if (it->first < 0 || it->first > 999) return Status::Error("Parsing error");
-			}
-		}
-		else if (str.find("cgi") != std::string::npos && this->cgi_type.empty())
+		else if (utils::find(str, "error_page"))
+			status = ParseErrorPage(str);
+		else if (utils::find(str, "cgi"))
 			status = utils::ParseVariable(this->cgi_type, str);
-		else if (str.find("client_body_size") != std::string::npos)
-		{
-			status = utils::ParseVariable(this->client_body_size, str);
-			if (status.ok() && (this->client_body_size < 0 || this->client_body_size > 1000000))
-				return Status::Error("Parsing error");
-		}
-		else if (str.find("location /") != std::string::npos)
-		{
-			std::string locate_block = ExtractLocateBlock(server_block);
-			if (locate_block.empty())
-				return Status::Error("location block error");
-			Locate locate;
-			status = locate.ParseLocateBlock(iss, locate_block);
-			if (status.ok())
-				locate_vec.push_back(locate);
-		}
+		else if (utils::find(str, "client_body_size"))
+			status = ParseClientSize(str);
+		else if (utils::find(str, "location"))
+			status = ParseLocateVariable(str, iss);
 		if (!status.ok())
 			return Status::Error(status.message());
 	}
 	return Status::OK();
 }
 
-std::string	Server::ExtractLocateBlock(std::string& server_block)
+Status	Server::ParsePortVariable(std::string& str)
 {
-	// std::cout << "Server::ExtractLocateBlock\n";
-	std::string start_token = "location / {";
-	size_t start_pos = server_block.find(start_token);
-	if (start_pos == std::string::npos)
+	Status status = utils::ParseVariable(this->port, str);
+	// ushrt_max --> header 필요?
+	if (status.ok() && (this->port < 0 || this->port > USHRT_MAX))
+		return Status::Error("port number error");
+	return status;
+}
+
+Status	Server::ParseErrorPage(std::string& str)
+{
+	Status status = utils::ParseVariable(this->error_page, str);
+	if (status.ok())
 	{
-		std::string path = "";
-		for (size_t i = strlen("location /"); server_block[i] != ' '; ++i)
-			path += server_block[i];
-		start_token = "location /" + path + " {";
-		start_pos = server_block.find(start_token);
-		if (start_pos == std::string::npos)
+		for (std::map<int, std::string>::iterator it = this->error_page.begin(); it != this->error_page.end(); ++it)
+			if (it->first < 0 || it->first > 999)
+				return Status::Error("Parsing error");
+	}
+	return status;
+}
+Status	Server::ParseClientSize(std::string& str)
+{
+	Status status = utils::ParseVariable(this->client_body_size, str);
+	if (status.ok() && (this->client_body_size < 0 || this->client_body_size > 1000000))
+		return Status::Error("Parsing error");
+	return status;
+}
+
+Status	Server::ParseLocateVariable(std::string& str, std::istringstream& iss)
+{
+	std::string locate_block = ExtractLocateBlock(iss, str);
+	if (locate_block.empty())
+		return Status::Error("location block error");
+	Locate locate;
+	Status status = locate.ParseLocateBlock(locate_block);
+	if (status.ok())
+		locate_vec.push_back(locate);
+	return status;
+}
+
+std::string Server::ExtractLocateBlock(std::istringstream& iss, std::string& first_line)
+{
+	std::string start_token = "\tlocation / {";
+	std::string path = "";
+	if (first_line != start_token)
+	{
+		for (size_t i = strlen("\tlocation /"); first_line[i] != ' '; ++i)
+			path += first_line[i];
+		start_token = "\tlocation /" + path + " {";
+		if (first_line != start_token)
 			return "";
 	}
-	size_t end_pos = start_pos + start_token.length();
-	// 엄밀한 확인 필요
-	int brace_count = 1;
-	while (end_pos < server_block.length() && brace_count > 0)
+	std::string str;
+	std::string locate_block = "";
+	while (getline(iss, str, '\n') && str.find("}") == std::string::npos)
 	{
-		if (server_block[end_pos] == '{')
-			brace_count++;
-		else if (server_block[end_pos] == '}')
-			brace_count--;
-		end_pos++;
+		locate_block += str;
+		locate_block += "\n";
 	}
-	if (brace_count != 0)
-		return "";
-	return server_block.substr(start_pos, end_pos - start_pos);
+	return locate_block;
 }
 
 void Server::PrintServerInfo(void)
@@ -123,9 +135,8 @@ void Server::PrintServerInfo(void)
 	std::cout << "\nSERVER INFO" << '\n';
 	std::cout << "listen: " << this->port << '\n';
 	std::cout << "server_name: " << this->server_name << '\n';
-	std::cout << "error_page: ";
 	for (std::map<int, std::string>::iterator it = error_page.begin(); it != error_page.end(); ++it)
-		std::cout << it->first << "  " << it->second << '\n';
+		std::cout << "error_page: " << it->first << "  " << it->second << '\n';
 	std::cout << "client_body_size: " << this->client_body_size << '\n';
 	std::cout << "cgi type: " << this->cgi_type << '\n';
 	for (size_t i = 0; i < this->locate_vec.size(); ++i)

@@ -68,13 +68,30 @@ namespace utils
 		return Status::OK();
 	}
 
-	bool	CheckFilePath(std::string& file_path)
+	bool CheckFilePath(std::string& file_path)
 	{
 		struct stat statbuf;
 		std::string path = "./" + file_path;
 		if (stat(path.c_str(), &statbuf) != -1 && S_ISDIR(statbuf.st_mode))
 			return true;
 		return false;
+	}
+
+	bool CheckExtension(std::string& file, const char *ex)
+	{
+		if (file.find(ex) != std::string::npos && file.find(ex) == file.rfind(ex))
+			return true;
+		return false;
+	}
+
+
+	bool find(std::string& dst, const char *src)
+	{
+		std::vector<std::string> token_vec = SplitToVector(dst);
+		std::string tmp(src);
+		if (token_vec.front() == tmp)
+			return (true);
+		return (false);
 	}
 
 	bool IsStrDigit(std::string& s)

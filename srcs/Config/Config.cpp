@@ -28,7 +28,7 @@ Config::~Config()
 Status Config::ReadConfig(std::string& file)
 {
 	// std::cout << "ReadConfig\n";
-	if (!CheckExtension(file))
+	if (!utils::CheckExtension(file, ".conf"))
 		return Status::Error("file extension error");
 	
 	// config to string
@@ -55,13 +55,6 @@ Status Config::ReadConfig(std::string& file)
 	return Status::OK();
 }
 
-bool Config::CheckExtension(std::string& file)
-{
-	if (file.find(".conf") != std::string::npos && file.find(".conf") == file.rfind(".conf"))
-		return true;
-	return false;
-}
-
 Status Config::ParseConfig(std::string& file)
 {
 	// std::cout << "ParseConfig\n";
@@ -71,29 +64,23 @@ Status Config::ParseConfig(std::string& file)
 	while (getline(iss, str, '\n'))
 	{
 		// std::cout << str << '\n';
-		if (str.find('#') != std::string::npos || str.empty() || utils::IsStrSpace(str)) continue;
-		if (str.find("server") == std::string::npos && str[str.length() - 1] != ';') return Status::Error("Parsing error");
-		if (str.find("SOFTWARE_NAME") != std::string::npos)
+		// 중복 체크, 유효성 체크
+		if (str.find('#') != std::string::npos || str.empty() || utils::IsStrSpace(str))
+			continue;
+		if (str.find("server") == std::string::npos && str[str.length() - 1] != ';')
+			return Status::Error("Parsing error");
+		if (utils::find(str, "SOFTWARE_NAME"))
 			status = utils::ParseVariable(this->software_name, str);
-		else if (str.find("SOFTWARE_VERSION") != std::string::npos)
+		else if (utils::find(str, "SOFTWARE_VERSION"))
 			status = utils::ParseVariable(this->software_ver, str);
-		else if (str.find("HTTP_VERSION") != std::string::npos)
+		else if (utils::find(str, "HTTP_VERSION"))
 			status = utils::ParseVariable(this->http_ver, str);
-		else if (str.find("CGI_VERSION") != std::string::npos)
+		else if (utils::find(str, "CGI_VERSION"))
 			status = utils::ParseVariable(this->cgi_ver, str);
-		else if (str.find("server") != std::string::npos)
-		{
-			std::string server_block = ExtractServerBlock(file);
-			if (server_block.empty())
-				return Status::Error("server block error");
-			Server server;
-			status = server.ParseServerBlock(iss, server_block);
-			if (status.ok())
-				server_vec.push_back(server);
-		}
+		else if (utils::find(str, "server"))
+			status = ParseServerVariable(file, iss);
 		else
 			return Status::Error("wrong config option error");
-		// 중복 체크, 유효성 체크
 		if (!status.ok())
 			return Status::Error(status.message());
 	}
@@ -123,6 +110,18 @@ std::string Config::ExtractServerBlock(std::string& file)
 	if (brace_count != 0 || end_pos != file.length())
 		return "";
 	return file.substr(start_pos, end_pos - start_pos);
+}
+
+Status Config::ParseServerVariable(std::string& file, std::istringstream& iss)
+{
+	std::string server_block = ExtractServerBlock(file);
+	if (server_block.empty())
+		return Status::Error("server block error");
+	Server server;
+	Status status = server.ParseServerBlock(iss, server_block);
+	if (status.ok())
+		this->server_vec.push_back(server);
+	return status;
 }
 
 void Config::PrintConfigInfo(void)

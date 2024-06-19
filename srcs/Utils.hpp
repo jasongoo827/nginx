@@ -19,6 +19,8 @@ namespace utils
 	Status 						ParseVariable(std::vector<std::string>& dst, std::string& src, std::string& cmp);
 	Status 						ParseVariable(std::pair<int, std::string>& dst, std::string& src);
 	bool						CheckFilePath(std::string& file_path);
+	bool						CheckExtension(std::string& file, const char *ex);
+	bool						find(std::string& dst, const char *src);
 	bool 						IsStrDigit(std::string& s);
 	bool						IsStrSpace(std::string& s);
 	double						strtod(std::string& s);

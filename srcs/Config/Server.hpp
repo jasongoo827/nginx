@@ -19,7 +19,11 @@ public:
 	~Server();
 
 	Status 		ParseServerBlock(std::istringstream& iss, std::string& server_block);
-	std::string	ExtractLocateBlock(std::string& server_block);
+	Status		ParsePortVariable(std::string& str);
+	Status		ParseErrorPage(std::string& str);
+	Status		ParseClientSize(std::string& str);
+	Status		ParseLocateVariable(std::string& str, std::istringstream& iss);
+	std::string	ExtractLocateBlock(std::istringstream& iss, std::string& first_line);
 	void		PrintServerInfo(void);
 
 private:

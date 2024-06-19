@@ -16,7 +16,7 @@ public:
 	Locate& operator=(const Locate& rhs);
 	~Locate();
 
-	Status 		ParseLocateBlock(std::istringstream& iss, std::string& locate_block);
+	Status 		ParseLocateBlock(std::string& locate_block);
 	void		PrintLocateInfo(void);
 
 private:

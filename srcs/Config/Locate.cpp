@@ -28,13 +28,12 @@ Locate::~Locate()
 	index_vec.clear();
 }
 
-Status Locate::ParseLocateBlock(std::istringstream& iss, std::string& locate_block)
+Status Locate::ParseLocateBlock(std::string& locate_block)
 {
 	// std::cout << "Locate::ParseLocateBlock\n";
-	// std::istringstream iss(locate_block);
+	std::istringstream iss(locate_block);
 	std::string str;
 	Status status;
-	(void)locate_block;
 	while (getline(iss, str, '\n'))
 	{
 		// std::cout << str << '\n';
@@ -42,7 +41,7 @@ Status Locate::ParseLocateBlock(std::istringstream& iss, std::string& locate_blo
 		if (str.find("}") != std::string::npos) break;
 		if (str[str.length() - 1] != ';') return Status::Error("Parsing error");
 		else str.resize(str.length() - 1);
-		if (str.find("limit_except") != std::string::npos)
+		if (utils::find(str, "limit_except"))
 		{
 			std::string cmp("limit_except");
 			status = utils::ParseVariable(this->method_vec, str, cmp);
@@ -50,36 +49,34 @@ Status Locate::ParseLocateBlock(std::istringstream& iss, std::string& locate_blo
 			{
 				for (size_t i = 0; i < this->method_vec.size(); ++i)
 				{
-					// std::cout << method_vec[i];
 					if (method_vec[i] != "POST" && method_vec[i] != "GET" && method_vec[i] != "DELETE")
 						return Status::Error("wrong method error");
 				}
 			}
 		}
-		else if (str.find("return") != std::string::npos)
+		else if (utils::find(str, "return"))
 			status = utils::ParseVariable(this->redirect_pair, str);
-		else if (str.find("root") != std::string::npos)
+		else if (utils::find(str, "root"))
 		{
 			status = utils::ParseVariable(this->root, str);
 			if (status.ok() && !utils::CheckFilePath(this->root))
 				return Status::Error("file path error");
 		}
-		else if (str.find("index") != std::string::npos && str.find("auto") == std::string::npos)
+		else if (utils::find(str, "index"))
 		{
 			std::string cmp("index");
 			status = utils::ParseVariable(this->index_vec, str, cmp);
 		}
-		else if (str.find("autoindex") != std::string::npos)
+		else if (utils::find(str, "autoindex"))
 		{
 			std::string tmp;
 			status = utils::ParseVariable(tmp, str);
-			std::cout << tmp << '\n';
 			if (status.ok())
 			{if (tmp == "ON" || tmp == "on") this->autoindex = true;
 			else if (tmp == "OFF" || tmp == "off") this->autoindex = false;
 			else return Status::Error("Parsing error");}
 		}
-		else if (str.find("filepath") != std::string::npos)
+		else if (utils::find(str, "filepath"))
 		{
 			status = utils::ParseVariable(this->file_path, str);
 			if (status.ok() && !utils::CheckFilePath(this->root))
