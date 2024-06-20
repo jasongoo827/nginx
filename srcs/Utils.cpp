@@ -12,6 +12,16 @@ namespace utils
 		return token_vec;
 	}
 
+	std::vector<std::string> SplitToVector(std::string& s, char delimeter)
+	{
+		std::istringstream iss(s);
+		std::string token;
+		std::vector<std::string> token_vec;
+		while (getline(iss, token, delimeter))
+			token_vec.push_back(token);
+		return token_vec;
+	}
+
 	Status ParseVariable(std::string& dst, std::string& src)
 	{
 		std::vector<std::string> token_vec = SplitToVector(src);
@@ -84,6 +94,22 @@ namespace utils
 		return false;
 	}
 
+	bool CheckIpFormat(std::string& s)
+	{
+		std::istringstream iss(s);
+		std::string token;
+		int line = 0;
+		while (getline(iss, token, '.') && IsStrDigit(token))
+		{
+			int n = stoi(token);
+			if (n < 0 || n > 255)
+				return false;
+			line++;
+		}
+		if (line != 4)
+			return false;
+		return true;
+	}
 
 	bool find(std::string& dst, const char *src)
 	{

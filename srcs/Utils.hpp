@@ -13,6 +13,7 @@
 namespace utils
 {
 	std::vector<std::string> 	SplitToVector(std::string& s);
+	std::vector<std::string>	SplitToVector(std::string& s, char delimeter);
 	Status 						ParseVariable(std::string& dst, std::string& src);
 	Status 						ParseVariable(int& dst, std::string& src);
 	Status 						ParseVariable(std::map<int, std::string>& dst, std::string& src);
@@ -20,6 +21,7 @@ namespace utils
 	Status 						ParseVariable(std::pair<int, std::string>& dst, std::string& src);
 	bool						CheckFilePath(std::string& file_path);
 	bool						CheckExtension(std::string& file, const char *ex);
+	bool						CheckIpFormat(std::string& s);
 	bool						find(std::string& dst, const char *src);
 	bool 						IsStrDigit(std::string& s);
 	bool						IsStrSpace(std::string& s);

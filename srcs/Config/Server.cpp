@@ -33,7 +33,6 @@ Status Server::ParseServerBlock(std::string& server_block)
 {
 	// std::cout << "Server::ParseServerBlock\n";
 	std::istringstream iss(server_block);
-	(void)server_block;
 	std::string str;
 	Status status;
 	while (getline(iss, str, '\n'))
@@ -41,7 +40,6 @@ Status Server::ParseServerBlock(std::string& server_block)
 		// std::cout << str << '\n';
 		if (str.find('#') != std::string::npos || str.empty() || utils::IsStrSpace(str))
 			continue;
-		// line이 ';'으로 끝나는지 검사
 		if (str.find("location /") == std::string::npos && str[str.length() - 1] != ';')
 			return Status::Error("Parsing error");
 		else if (str[str.length() - 1] == ';')
@@ -66,7 +64,19 @@ Status Server::ParseServerBlock(std::string& server_block)
 
 Status	Server::ParsePortVariable(std::string& str)
 {
-	Status status = utils::ParseVariable(this->port, str);
+	std::vector<std::string> tmp_vec = utils::SplitToVector(str);
+	Status status;
+	if (tmp_vec.size() != 2)
+		return Status::Error("wrong listen format");
+	if (!utils::IsStrDigit(tmp_vec.back()))
+	{
+		std::vector<std::string> ip_format = utils::SplitToVector(tmp_vec.back(), ':');
+		if (!utils::CheckIpFormat(ip_format.front()))
+			return Status::Error("wron ip format");
+		status = utils::ParseVariable(this->port, ip_format.back());
+	}
+	else
+		status = utils::ParseVariable(this->port, str);
 	// ushrt_max --> header 필요?
 	if (status.ok() && (this->port < 0 || this->port > USHRT_MAX))
 		return Status::Error("port number error");
