@@ -139,27 +139,27 @@ Status Config::ParseServerVariable(std::string& file, std::istringstream& iss)
 	return status;
 }
 
-std::vector<Server> Config::GetServerVec(void) const
+const std::vector<Server>& Config::GetServerVec(void) const
 {
 	return server_vec;
 }
 
-std::string	Config::GetSoftwareName(void) const
+const std::string&	Config::GetSoftwareName(void) const
 {
 	return software_name;
 }
 
-std::string	Config::GetSoftwareVer(void) const
+const std::string&	Config::GetSoftwareVer(void) const
 {
 	return software_ver;
 }
 
-std::string	Config::GetHttpVer(void) const
+const std::string&	Config::GetHttpVer(void) const
 {
 	return http_ver;
 }
 
-std::string	Config::GetCgiVer(void) const
+const std::string&	Config::GetCgiVer(void) const
 {
 	return cgi_ver;
 }
