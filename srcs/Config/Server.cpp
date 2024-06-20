@@ -136,37 +136,37 @@ std::string Server::ExtractLocateBlock(std::istringstream& iss, std::string& fir
 	return locate_block;
 }
 
-std::vector<Locate> Server::GetLocateVec(void) const
+const std::vector<Locate>& Server::GetLocateVec(void) const
 {
 	return locate_vec;
 }
 
-std::map<int, std::string> Server::GetErrorPage(void) const
+const std::map<int, std::string>& Server::GetErrorPage(void) const
 {
 	return error_page;
 }
 
-std::string Server::GetHostIp(void) const
+const std::string& Server::GetHostIp(void) const
 {
 	return host_ip;
 }
 
-std::string Server::GetServerName(void) const
+const std::string& Server::GetServerName(void) const
 {
 	return server_name;
 }
 
-std::string Server::GetCgiType(void) const
+const std::string& Server::GetCgiType(void) const
 {
 	return cgi_type;
 }
 
-int Server::GetPort(void) const
+const int& Server::GetPort(void) const
 {
 	return port;
 }
 
-int Server::GetClientBodySize(void) const
+const int& Server::GetClientBodySize(void) const
 {
 	return client_body_size;
 }

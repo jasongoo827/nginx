@@ -18,21 +18,21 @@ public:
 	Server& operator=(const Server& rhs);
 	~Server();
 
-	Status 						ParseServerBlock(std::string& server_block);
-	Status						ParsePortVariable(std::string& str);
-	Status						ParseErrorPage(std::string& str);
-	Status						ParseClientSize(std::string& str);
-	Status						ParseLocateVariable(std::string& str, std::istringstream& iss);
-	std::string					ExtractLocateBlock(std::istringstream& iss, std::string& first_line);
-	void						PrintServerInfo(void);
+	Status 								ParseServerBlock(std::string& server_block);
+	Status								ParsePortVariable(std::string& str);
+	Status								ParseErrorPage(std::string& str);
+	Status								ParseClientSize(std::string& str);
+	Status								ParseLocateVariable(std::string& str, std::istringstream& iss);
+	std::string							ExtractLocateBlock(std::istringstream& iss, std::string& first_line);
+	void								PrintServerInfo(void);
 
-	std::vector<Locate> 		GetLocateVec(void) const;
-	std::map<int, std::string> 	GetErrorPage(void) const;
-	std::string 				GetHostIp(void) const;
-	std::string 				GetServerName(void) const;
-	std::string 				GetCgiType(void) const;
-	int 						GetPort(void) const;
-	int 						GetClientBodySize(void) const;
+	const std::vector<Locate>& 			GetLocateVec(void) const;
+	const std::map<int, std::string>& 	GetErrorPage(void) const;
+	const std::string& 					GetHostIp(void) const;
+	const std::string& 					GetServerName(void) const;
+	const std::string& 					GetCgiType(void) const;
+	const int& 							GetPort(void) const;
+	const int& 							GetClientBodySize(void) const;
 
 private:
 	std::vector<Locate>			locate_vec;

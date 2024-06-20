@@ -79,8 +79,8 @@ Status	Locate::ParseMethod(std::string& str)
 Status	Locate::ParseRoot(std::string& str)
 {
 	Status status = utils::ParseVariable(this->root, str);
-	if (status.ok()/* && !utils::CheckFilePath(this->root)*/)
-		return Status::Error("file path error");
+	// if (status.ok()/* && !utils::CheckFilePath(this->root)*/)
+	// 	return Status::Error("file path error");
 	return status;
 }
 
@@ -110,37 +110,37 @@ Status	Locate::ParseAutoIndex(std::string& str)
 Status	Locate::ParseFilePath(std::string& str)
 {
 	Status status = utils::ParseVariable(this->file_path, str);
-	if (status.ok() /*&& !utils::CheckFilePath(this->root)*/)
-		return Status::Error("Parsing error");
+	// if (status.ok() /*&& !utils::CheckFilePath(this->root)*/)
+	// 	return Status::Error("Parsing error");
 	return status;
 }
 
-std::string	Locate::GetLocatePath(void) const
+const std::string&	Locate::GetLocatePath(void) const
 {
 	return locate_path;
 }
 
-std::vector<std::string> Locate::GetMethodVec(void) const
+const std::vector<std::string>& Locate::GetMethodVec(void) const
 {
 	return method_vec;
 }
 
-std::vector<std::string> Locate::GetIndexVec(void) const
+const std::vector<std::string>& Locate::GetIndexVec(void) const
 {
 	return index_vec;
 }
 
-std::pair<int, std::string> Locate::GetRedirectPair(void) const
+const std::pair<int, std::string>& Locate::GetRedirectPair(void) const
 {
 	return redirect_pair;
 }
 
-std::string Locate::GetRoot(void) const
+const std::string& Locate::GetRoot(void) const
 {
 	return root;
 }
 
-std::string Locate::GetFilePath(void) const
+const std::string& Locate::GetFilePath(void) const
 {
 	return file_path;
 }
