@@ -3,10 +3,10 @@
 #include "Server.hpp"
 #include "../Utils.hpp"
 
-Config::Config() {}
+Config::Config(): dup_mask(0) {}
 
 Config::Config(const Config& other): server_vec(other.server_vec), software_name(other.software_name), 
-software_ver(other.software_ver), http_ver(other.http_ver), cgi_ver(other.cgi_ver) {}
+software_ver(other.software_ver), http_ver(other.http_ver), cgi_ver(other.cgi_ver), dup_mask(other.dup_mask) {}
 
 Config& Config::operator=(const Config& rhs)
 {
@@ -17,6 +17,7 @@ Config& Config::operator=(const Config& rhs)
 	software_ver = rhs.software_ver;
 	http_ver = rhs.http_ver;
 	cgi_ver = rhs.cgi_ver;
+	dup_mask = rhs.dup_mask;
 	return (*this);
 }
 
@@ -70,13 +71,13 @@ Status Config::ParseConfig(std::string& file)
 		if (str.find("server") == std::string::npos && str[str.length() - 1] != ';')
 			return Status::Error("Parsing error");
 		if (utils::find(str, "SOFTWARE_NAME"))
-			status = utils::ParseVariable(this->software_name, str);
+			status = ParseSoftwareName(str);
 		else if (utils::find(str, "SOFTWARE_VERSION"))
-			status = utils::ParseVariable(this->software_ver, str);
+			status = ParseSoftwareVer(str);
 		else if (utils::find(str, "HTTP_VERSION"))
-			status = utils::ParseVariable(this->http_ver, str);
+			status = ParseHttpVer(str);
 		else if (utils::find(str, "CGI_VERSION"))
-			status = utils::ParseVariable(this->cgi_ver, str);
+			status = ParseCgiVer(str);
 		else if (utils::find(str, "server"))
 			status = ParseServerVariable(str, iss);
 		else
@@ -137,6 +138,38 @@ Status Config::ParseServerVariable(std::string& file, std::istringstream& iss)
 	if (status.ok())
 		this->server_vec.push_back(server);
 	return status;
+}
+
+Status Config::ParseSoftwareName(std::string& str)
+{
+	if (dup_mask & SOFTWARE_NAME)
+		return Status::Error("software name duplicate error");
+	dup_mask |= SOFTWARE_NAME;
+	return utils::ParseVariable(this->software_name, str);
+}
+
+Status Config::ParseSoftwareVer(std::string& str)
+{
+	if (dup_mask & SOFTWARE_VER)
+		return Status::Error("software version duplicate error");
+	dup_mask |= SOFTWARE_VER;
+	return utils::ParseVariable(this->software_ver, str);
+}
+
+Status Config::ParseHttpVer(std::string& str)
+{
+	if (dup_mask & HTTP_VER)
+		return Status::Error("http version duplicate error");
+	dup_mask |= HTTP_VER;
+	return utils::ParseVariable(this->http_ver, str);
+}
+
+Status Config::ParseCgiVer(std::string& str)
+{
+	if (dup_mask & CGI_VER)
+		return Status::Error("cgi version duplicate error");
+	dup_mask |= CGI_VER;
+	return utils::ParseVariable(this->cgi_ver, str);
 }
 
 const std::vector<Server>& Config::GetServerVec(void) const

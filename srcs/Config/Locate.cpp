@@ -2,11 +2,11 @@
 #include "../Status.hpp"
 #include "../Utils.hpp"
 
-Locate::Locate(): autoindex(false) {}
+Locate::Locate(): autoindex(false), dup_mask(0) {}
 
 Locate::Locate(const Locate& other): locate_path(other.locate_path), method_vec(other.method_vec),
 index_vec(other.index_vec), redirect_pair(other.redirect_pair), root(other.root), file_path(other.file_path),
-autoindex(other.autoindex) {}
+autoindex(other.autoindex), dup_mask(other.dup_mask) {}
 
 Locate& Locate::operator=(const Locate& rhs)
 {
@@ -19,6 +19,7 @@ Locate& Locate::operator=(const Locate& rhs)
 	root = rhs.root;
 	file_path = rhs.file_path;
 	autoindex = rhs.autoindex;
+	dup_mask = rhs.dup_mask;
 	return (*this);
 }
 
@@ -46,7 +47,7 @@ Status Locate::ParseLocateBlock(std::string& locate_block)
 		if (utils::find(str, "limit_except"))
 			status = ParseMethod(str);
 		else if (utils::find(str, "return"))
-			status = utils::ParseVariable(this->redirect_pair, str);
+			status = ParseRedirect(str);
 		else if (utils::find(str, "root"))
 			status = ParseRoot(str);
 		else if (utils::find(str, "index"))
@@ -63,6 +64,9 @@ Status Locate::ParseLocateBlock(std::string& locate_block)
 
 Status	Locate::ParseMethod(std::string& str)
 {
+	if (dup_mask & METHOD)
+		return Status::Error("method duplicate error");
+	dup_mask |= METHOD;
 	std::string cmp("limit_except");
 	Status status = utils::ParseVariable(this->method_vec, str, cmp);
 	if (status.ok())
@@ -76,23 +80,38 @@ Status	Locate::ParseMethod(std::string& str)
 	return status;
 }
 
+Status Locate::ParseRedirect(std::string& str)
+{
+	if (dup_mask & REDIRECT)
+		return Status::Error("redirect duplicate error");
+	dup_mask |= REDIRECT;
+	return utils::ParseVariable(this->redirect_pair, str);
+}
+
 Status	Locate::ParseRoot(std::string& str)
 {
-	Status status = utils::ParseVariable(this->root, str);
+	if (dup_mask & ROOT)
+		return Status::Error("root duplicate error");
+	dup_mask |= ROOT;
 	// if (status.ok()/* && !utils::CheckFilePath(this->root)*/)
 	// 	return Status::Error("file path error");
-	return status;
+	return utils::ParseVariable(this->root, str);
 }
 
 Status	Locate::ParseIndex(std::string& str)
 {
+	if (dup_mask & INDEX)
+		return Status::Error("index duplicate error");
+	dup_mask |= INDEX;
 	std::string cmp("index");
-	Status status = utils::ParseVariable(this->index_vec, str, cmp);
-	return status;
+	return utils::ParseVariable(this->index_vec, str, cmp);
 }
 
 Status	Locate::ParseAutoIndex(std::string& str)
 {
+	if (dup_mask & AUTOINDEX)
+		return Status::Error("autoindex duplicate error");
+	dup_mask |= AUTOINDEX;
 	std::string tmp;
 	Status status = utils::ParseVariable(tmp, str);
 	if (status.ok())
@@ -109,10 +128,12 @@ Status	Locate::ParseAutoIndex(std::string& str)
 
 Status	Locate::ParseFilePath(std::string& str)
 {
-	Status status = utils::ParseVariable(this->file_path, str);
+	if (dup_mask & FILEPATH)
+		return Status::Error("filepath duplicate error");
+	dup_mask |= FILEPATH;
 	// if (status.ok() /*&& !utils::CheckFilePath(this->root)*/)
 	// 	return Status::Error("Parsing error");
-	return status;
+	return utils::ParseVariable(this->file_path, str);
 }
 
 const std::string&	Locate::GetLocatePath(void) const
@@ -150,11 +171,18 @@ bool Locate::GetAutoIndex(void) const
 	return autoindex;
 }
 
-
+void Locate::SetLocatePath(std::string& str)
+{
+	std::string path = "";
+	for (size_t i = strlen("\tlocation /"); str[i] != ' '; ++i)
+		path += str[i];
+	this->locate_path = "/" + path;
+}
 
 void Locate::PrintLocateInfo(void)
 {
 	std::cout << "\nLOCATION INFO" << '\n';
+	std::cout << "Locate Path: " << locate_path << '\n';
 	std::cout << "method list: ";
 	for (size_t i = 0; i < this->method_vec.size(); ++i)
 		std::cout << this->method_vec[i] << " ";

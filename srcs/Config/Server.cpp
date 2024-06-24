@@ -3,11 +3,11 @@
 #include "Locate.hpp"
 #include <string.h>
 
-Server::Server() {}
+Server::Server(): dup_mask(0) {}
 
 Server::Server(const Server& other): locate_vec(other.locate_vec), error_page(other.error_page),
 host_ip(other.host_ip), server_name(other.server_name), cgi_type(other.cgi_type), port(other.port),
-client_body_size(other.client_body_size) {}
+client_body_size(other.client_body_size), dup_mask(other.dup_mask) {}
 
 Server& Server::operator=(const Server& rhs)
 {
@@ -20,6 +20,7 @@ Server& Server::operator=(const Server& rhs)
 	cgi_type = rhs.cgi_type;
 	port = rhs.port;
 	client_body_size = rhs.client_body_size;
+	dup_mask = rhs.dup_mask;
 	return (*this);
 }
 
@@ -47,11 +48,11 @@ Status Server::ParseServerBlock(std::string& server_block)
 		if (utils::find(str, "listen"))
 			status = ParsePortVariable(str);
 		else if (utils::find(str, "server_name"))
-			status = utils::ParseVariable(this->server_name, str);
+			status = ParseServerName(str);
 		else if (utils::find(str, "error_page"))
 			status = ParseErrorPage(str);
 		else if (utils::find(str, "cgi"))
-			status = utils::ParseVariable(this->cgi_type, str);
+			status = ParseCgiType(str);
 		else if (utils::find(str, "client_body_size"))
 			status = ParseClientSize(str);
 		else if (utils::find(str, "location"))
@@ -64,6 +65,9 @@ Status Server::ParseServerBlock(std::string& server_block)
 
 Status	Server::ParsePortVariable(std::string& str)
 {
+	if (dup_mask & LISTEN)
+		return Status::Error("port duplicate error");
+	dup_mask |= LISTEN;
 	std::vector<std::string> tmp_vec = utils::SplitToVector(str);
 	Status status;
 	if (tmp_vec.size() != 2)
@@ -72,7 +76,8 @@ Status	Server::ParsePortVariable(std::string& str)
 	{
 		std::vector<std::string> ip_format = utils::SplitToVector(tmp_vec.back(), ':');
 		if (!utils::CheckIpFormat(ip_format.front()))
-			return Status::Error("wron ip format");
+			return Status::Error("wrong ip format");
+		this->host_ip = ip_format.front();
 		status = utils::ParseVariable(this->port, ip_format.back());
 	}
 	else
@@ -83,19 +88,39 @@ Status	Server::ParsePortVariable(std::string& str)
 	return status;
 }
 
+Status Server::ParseServerName(std::string& str)
+{
+	if (dup_mask & SERVER_NAME)
+		return Status::Error("server name duplicate error");
+	dup_mask |= SERVER_NAME;
+	return utils::ParseVariable(this->server_name, str);
+}
+
 Status	Server::ParseErrorPage(std::string& str)
 {
 	Status status = utils::ParseVariable(this->error_page, str);
 	if (status.ok())
 	{
 		for (std::map<int, std::string>::iterator it = this->error_page.begin(); it != this->error_page.end(); ++it)
-			if (it->first < 0 || it->first > 999)
+			if (it->first < 300 || it->first > 599)
 				return Status::Error("Parsing error");
 	}
 	return status;
 }
+
+Status Server::ParseCgiType(std::string& str)
+{
+	if (dup_mask & CGI_EXT)
+		return Status::Error("server name duplicate error");
+	dup_mask |= CGI_EXT;
+	return utils::ParseVariable(this->cgi_type, str);
+}
+
 Status	Server::ParseClientSize(std::string& str)
 {
+	if (dup_mask & CLIENT_SIZE)
+		return Status::Error("client size duplicate error");
+	dup_mask |= CLIENT_SIZE;
 	Status status = utils::ParseVariable(this->client_body_size, str);
 	if (status.ok() && (this->client_body_size < 0 || this->client_body_size > 1000000))
 		return Status::Error("Parsing error");
@@ -108,6 +133,7 @@ Status	Server::ParseLocateVariable(std::string& str, std::istringstream& iss)
 	if (locate_block.empty())
 		return Status::Error("location block error");
 	Locate locate;
+	locate.SetLocatePath(str);
 	Status status = locate.ParseLocateBlock(locate_block);
 	if (status.ok())
 		locate_vec.push_back(locate);

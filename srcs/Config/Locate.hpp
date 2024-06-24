@@ -8,6 +8,16 @@
 
 class Status;
 
+enum LocateVar
+{
+	METHOD = 1 << 0,
+	REDIRECT = 1 << 1,
+	ROOT = 1 << 2,
+	INDEX = 1 << 3,
+	AUTOINDEX = 1 << 4,
+	FILEPATH = 1 << 5
+};
+
 class Locate
 {
 public:
@@ -18,6 +28,7 @@ public:
 
 	Status 								ParseLocateBlock(std::string& locate_block);
 	Status								ParseMethod(std::string& str);
+	Status								ParseRedirect(std::string& str);
 	Status								ParseRoot(std::string& str);
 	Status								ParseIndex(std::string& str);
 	Status								ParseAutoIndex(std::string& str);
@@ -32,6 +43,8 @@ public:
 	const std::string& 					GetFilePath(void) const;
 	bool 								GetAutoIndex(void) const;
 
+	void								SetLocatePath(std::string& str);
+
 private:
 	std::string					locate_path;
 	std::vector<std::string> 	method_vec;
@@ -40,6 +53,7 @@ private:
 	std::string					root;
 	std::string 				file_path;
 	bool						autoindex;
+	int							dup_mask;
 };
 
 #endif
