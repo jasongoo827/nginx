@@ -4,6 +4,7 @@
 # include "Response.hpp"
 # include "Request.hpp"
 # include "Config.hpp"
+# include "Server.hpp"
 # include "Locate.hpp"
 
 class Connection
@@ -16,19 +17,27 @@ public:
 	Connection& operator=(const Connection& ref);
 
 	void	mainprocess();
-	void	make_response();
+	void	makeResponse();
 	void	parserequest();
-	void	process_dir();
-	void	process_file();
-	void	process_cgi();
+	void	processDir();
+	void	processFile();
+	void	processCgi();
+	void	readFile();
+	void	readCgi();
+	void	sendMessage();
 
 private:
 	int						client_socket_fd;
+	std::string				path;
 	Request					request;
 	Response				response;
 	enum current_progress	progress;
 	Config*					config_ptr;
-	Locate*					locate_ptr;
+	Server const *			server_ptr;
+	Locate const *			locate_ptr;
+	int						file_fd;
+	int						cgi_input_fd;
+	int						cgi_output_fd;
 };
 
 #endif
