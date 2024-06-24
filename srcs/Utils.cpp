@@ -31,7 +31,7 @@ namespace utils
 		return Status::OK();
 	}
 
-	Status ParseVariable(int& dst, std::string& src)
+	Status ParseVariable(ssize_t& dst, std::string& src)
 	{
 		std::vector<std::string> token_vec = SplitToVector(src);
 		if (token_vec.size() != 2 || !IsStrDigit(token_vec.back()))
@@ -141,9 +141,12 @@ namespace utils
 		return (std::strtod(str, &ptr));
 	}
 
-	int stoi(std::string& s)
+	ssize_t stoi(std::string& s)
 	{
-		return (atoi(s.c_str()));
+		std::istringstream iss(s);
+		ssize_t num;
+		iss >> num;
+		return (num);
 	}
 }
 

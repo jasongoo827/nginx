@@ -122,7 +122,7 @@ Status	Server::ParseClientSize(std::string& str)
 		return Status::Error("client size duplicate error");
 	dup_mask |= CLIENT_SIZE;
 	Status status = utils::ParseVariable(this->client_body_size, str);
-	if (status.ok() && (this->client_body_size < 0 || this->client_body_size > 1000000))
+	if (status.ok() && (this->client_body_size < 0 || this->client_body_size > 1000000 || this->client_body_size > std::numeric_limits<int>::max() || this->client_body_size < std::numeric_limits<int>::min()))
 		return Status::Error("Parsing error");
 	return status;
 }
@@ -187,12 +187,12 @@ const std::string& Server::GetCgiType(void) const
 	return cgi_type;
 }
 
-const int& Server::GetPort(void) const
+const ssize_t& Server::GetPort(void) const
 {
 	return port;
 }
 
-const int& Server::GetClientBodySize(void) const
+const ssize_t& Server::GetClientBodySize(void) const
 {
 	return client_body_size;
 }

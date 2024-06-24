@@ -85,6 +85,8 @@ Status Config::ParseConfig(std::string& file)
 		if (!status.ok())
 			return Status::Error(status.message());
 	}
+	if (this->server_vec.size() == 0)
+		return Status::Error("no server error");
 	return Status::OK();
 }
 

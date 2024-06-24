@@ -15,7 +15,7 @@ namespace utils
 	std::vector<std::string> 	SplitToVector(std::string& s);
 	std::vector<std::string>	SplitToVector(std::string& s, char delimeter);
 	Status 						ParseVariable(std::string& dst, std::string& src);
-	Status 						ParseVariable(int& dst, std::string& src);
+	Status 						ParseVariable(ssize_t& dst, std::string& src);
 	Status 						ParseVariable(std::map<int, std::string>& dst, std::string& src);
 	Status 						ParseVariable(std::vector<std::string>& dst, std::string& src, std::string& cmp);
 	Status 						ParseVariable(std::pair<int, std::string>& dst, std::string& src);
@@ -26,7 +26,7 @@ namespace utils
 	bool 						IsStrDigit(std::string& s);
 	bool						IsStrSpace(std::string& s);
 	double						strtod(std::string& s);
-	int 						stoi(std::string& s);
+	ssize_t 					stoi(std::string& s);
 }
 
 #endif

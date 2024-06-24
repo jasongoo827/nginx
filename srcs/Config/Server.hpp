@@ -5,6 +5,7 @@
 #include <map>
 #include <vector>
 #include <sstream>
+#include <stdlib.h>
 #include "../Utils.hpp"
 
 class Locate;
@@ -41,8 +42,8 @@ public:
 	const std::string& 					GetHostIp(void) const;
 	const std::string& 					GetServerName(void) const;
 	const std::string& 					GetCgiType(void) const;
-	const int& 							GetPort(void) const;
-	const int& 							GetClientBodySize(void) const;
+	const ssize_t& 						GetPort(void) const;
+	const ssize_t& 						GetClientBodySize(void) const;
 
 private:
 	std::vector<Locate>			locate_vec;
@@ -50,8 +51,8 @@ private:
 	std::string					host_ip;
 	std::string					server_name;
 	std::string 				cgi_type; // 추후에 vector로 수정될 수 있음.
-	int							port;
-	int							client_body_size;
+	ssize_t						port;
+	ssize_t						client_body_size;
 	int							dup_mask;
 };
 
