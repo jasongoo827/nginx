@@ -10,6 +10,7 @@ body {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
+	height: 100vh;
 }
 header {
 	width: 100%;
@@ -25,12 +26,14 @@ header h1 {
 }
 main {
 	display: flex;
-	justify-content: space-between;
+	justify-content: center;
 	width: 80%;
-	margin-top: 40px;
+	margin-top: auto;
+	margin-bottom: auto;
 }
 section {
-	width: 30%;
+	flex: 1;
+	margin: 0 10px;
 	padding: 20px;
 	box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 	background-color: #fff;
@@ -40,14 +43,13 @@ section h2 {
 	font-size: 18px;
 	color: #555;
 }
-section input {
+section input, section button {
 	width: 80%;
 	padding: 10px;
 	margin: 10px 0;
 	box-sizing: border-box;
 }
 section button {
-	padding: 10px 20px;
 	background-color: #007bff;
 	color: #fff;
 	border: none;
@@ -79,7 +81,8 @@ section button:hover {
 		</section>
 		<section>
 			<h2>UPLOAD FILE</h2>
-			<button onclick="">UPLOAD BUTTON</button>
+				<input type="file" name="fileToUpload" id="fileToUpload">
+				<button type="submit">UPLOAD BUTTON</button>
 		</section>	
 
 		<section>
