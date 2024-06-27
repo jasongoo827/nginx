@@ -6,8 +6,8 @@
 #include <vector>
 #include <sstream>
 #include <stdlib.h>
-#include "../Utils.hpp"
-#include "../Enum.hpp"
+#include "Utils.hpp"
+#include "Enum.hpp"
 
 class Locate;
 class Status;

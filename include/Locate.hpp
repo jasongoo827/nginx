@@ -5,7 +5,7 @@
 #include <vector>
 #include <utility>
 #include <sstream>
-#include "../Enum.hpp"
+#include "Enum.hpp"
 
 class Status;
 

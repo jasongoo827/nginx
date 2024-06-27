@@ -1,6 +1,6 @@
 #include "Locate.hpp"
-#include "../Status.hpp"
-#include "../Utils.hpp"
+#include "Status.hpp"
+#include "Utils.hpp"
 
 Locate::Locate(): autoindex(false), dup_mask(0) {}
 

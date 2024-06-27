@@ -1,7 +1,7 @@
 #include "Config.hpp"
-#include "../Status.hpp"
+#include "Status.hpp"
 #include "Server.hpp"
-#include "../Utils.hpp"
+#include "Utils.hpp"
 
 Config::Config(): dup_mask(0) {}
 

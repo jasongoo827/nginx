@@ -5,9 +5,9 @@
 #include <vector>
 #include <fstream>
 #include <sstream>
-#include "../Utils.hpp"
+#include "Utils.hpp"
 #include <stdlib.h>
-#include "../Enum.hpp"
+#include "Enum.hpp"
 
 class Server;
 class Status;
