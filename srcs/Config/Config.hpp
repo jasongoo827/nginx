@@ -7,17 +7,10 @@
 #include <sstream>
 #include "../Utils.hpp"
 #include <stdlib.h>
+#include "../Enum.hpp"
 
 class Server;
 class Status;
-
-enum ConfigVar
-{
-	SOFTWARE_NAME = 1 << 0,
-	SOFTWARE_VER = 1 << 1,
-	HTTP_VER = 1 << 2,
-	CGI_VER = 1 << 3
-};
 
 class Config
 {

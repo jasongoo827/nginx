@@ -68,12 +68,19 @@ Status	Locate::ParseMethod(std::string& str)
 		return Status::Error("method duplicate error");
 	dup_mask |= METHOD;
 	std::string cmp("limit_except");
-	Status status = utils::ParseVariable(this->method_vec, str, cmp);
+	std::vector<std::string> tmp_method_vec;
+	Status status = utils::ParseVariable(tmp_method_vec, str, cmp);
 	if (status.ok())
 	{
-		for (size_t i = 0; i < this->method_vec.size(); ++i)
+		for (size_t i = 0; i < tmp_method_vec.size(); ++i)
 		{
-			if (method_vec[i] != "POST" && method_vec[i] != "GET" && method_vec[i] != "DELETE")
+			if (tmp_method_vec[i] == "POST")
+				method_vec.push_back(POST);
+			else if (tmp_method_vec[i] == "GET")
+				method_vec.push_back(GET);
+			else if (tmp_method_vec[i] == "DELETE")
+				method_vec.push_back(DELETE);
+			else
 				return Status::Error("wrong method error");
 		}
 	}
@@ -141,7 +148,7 @@ const std::string&	Locate::GetLocatePath(void) const
 	return locate_path;
 }
 
-const std::vector<std::string>& Locate::GetMethodVec(void) const
+const std::vector<enum Method>& Locate::GetMethodVec(void) const
 {
 	return method_vec;
 }
