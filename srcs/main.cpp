@@ -1,4 +1,4 @@
-#include "Config/Config.hpp"
+#include "Config.hpp"
 #include "Status.hpp"
 
 int main(int argc, char *argv[], char *envp[])

@@ -1,8 +1,11 @@
 #ifndef PARSER_H
 # define PARSER_H
 
-#include "Request.hpp"
-#include <sstream>
+# include "Request.hpp"
+# include <sstream>
+
+# define CHUNK_SIZE	0
+# define CHUNK_DATA	1
 
 class Request;
 
@@ -17,6 +20,7 @@ public:
 	bool	parse_startline(Request &request);
 	bool	parse_header(Request &request);
 	bool	parse_body(Request &request);
+	bool	parse_trailer(Request &request);
 
 private:
 	std::istringstream	data;

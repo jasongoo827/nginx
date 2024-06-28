@@ -6,18 +6,11 @@
 #include <vector>
 #include <sstream>
 #include <stdlib.h>
-#include "../Utils.hpp"
+#include "Utils.hpp"
+#include "Enum.hpp"
 
 class Locate;
 class Status;
-
-enum ServerVar
-{
-	LISTEN = 1 << 0,
-	SERVER_NAME = 1 << 1,
-	CLIENT_SIZE = 1 << 2,
-	CGI_EXT = 1 << 3
-};
 
 class Server
 {
