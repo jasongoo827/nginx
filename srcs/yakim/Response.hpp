@@ -1,37 +1,9 @@
 #ifndef RESPONSE_HPP
 # define RESPONSE_HPP
 
+# include "Enum.hpp"
 # include <map>
 # include <string>
-
-typedef enum Method
-{
-	GET,
-	POST,
-	DELETE
-};
-
-typedef enum Uri_type
-{
-	DIR,
-	FILE,
-	CGI
-};
-
-typedef enum Transfer_type
-{
-	SINGLE,
-	CHUNKED
-};
-
-typedef enum current_progress
-{
-	REQUEST,
-	TO_CGI,
-	FROM_CGI,
-	FILE_READING,
-	MESSAGE_SEND
-};
 
 class Response
 {
@@ -46,23 +18,28 @@ public:
 	void								make_response_50x(int);
 	void								autoindex();
 
-//getter
 	enum Method							get_method();
 	int									get_status();
 	std::map<std::string, std::string>	get_header();
-	std::string							get_body();
-	enum Transfer_type					get_transfer_type();
+	const std::string&					getBody();
 	const std::string&					getMessage();
 	ssize_t								getMessageSize();
+	const std::string&					getReason(int status);
 	void								cutMessage(ssize_t size);
+	void								addHeader(std::string key, std::string value);
+	void								addBasicHeader();
+	void								combineMessage();
+	void								addBody(const std::string& str, ssize_t size);
+	void								cutBody(ssize_t size);
+	static std::map<int, std::string>	reasonmap;
 
 private:
 	enum Method							method;
 	int									status;
 	std::map<std::string, std::string>	header;
 	std::string							body;
-	enum Transfer_type					transfer_type;
 	std::string							message;
+	ssize_t								message_size;
 };
 
 #endif

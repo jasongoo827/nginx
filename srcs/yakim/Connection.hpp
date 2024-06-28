@@ -6,6 +6,8 @@
 # include "Config.hpp"
 # include "Server.hpp"
 # include "Locate.hpp"
+# include "Cgi.hpp"
+# include "Enum.hpp"
 
 class Connection
 {
@@ -24,6 +26,7 @@ public:
 	void	processCgi();
 	void	readFile();
 	void	readCgi();
+	void	sendCgi();
 	void	sendMessage();
 
 private:
@@ -31,7 +34,8 @@ private:
 	std::string				path;
 	Request					request;
 	Response				response;
-	enum current_progress	progress;
+	Cgi						cgi;
+	enum CurrentProgress	progress;
 	Config*					config_ptr;
 	Server const *			server_ptr;
 	Locate const *			locate_ptr;

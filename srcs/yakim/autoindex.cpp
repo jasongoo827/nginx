@@ -17,11 +17,6 @@ void autoindex()
 	std::string			tmp;
 
 	dirptr = opendir(DIR_PATH);
-	// if (dirptr == NULL)
-	// {
-	// 	this.response_404();
-	// 	return ;
-	// }
 	str << "<html>\r\n<head><title>Index of " << DIR_PATH << "</title></head>\r\n";
 	str << "<body>\r\n<h1>Index of " << DIR_PATH << "</h1><hr>\r\n<pre>";
 	while ((dp = readdir(dirptr)) != NULL)
@@ -42,9 +37,4 @@ void autoindex()
 	str << "</pre><hr></body>\r\n</html>\r\n";
 	closedir(dirptr);
 	std::cout << str.str() << std::endl;
-}
-
-int main(void)
-{
-	autoindex();
 }
