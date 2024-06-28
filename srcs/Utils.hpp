@@ -8,12 +8,14 @@
 #include <utility>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <ctime>
 #include "Status.hpp"
 
 namespace utils
 {
 	std::vector<std::string> 	SplitToVector(std::string& s);
 	std::vector<std::string>	SplitToVector(std::string& s, char delimeter);
+	std::vector<std::string> 	SplitToVector(const std::string& s, char delimeter);
 	Status 						ParseVariable(std::string& dst, std::string& src);
 	Status 						ParseVariable(ssize_t& dst, std::string& src);
 	Status 						ParseVariable(std::map<int, std::string>& dst, std::string& src);
@@ -27,6 +29,7 @@ namespace utils
 	bool						IsStrSpace(std::string& s);
 	double						strtod(std::string& s);
 	ssize_t 					stoi(std::string& s);
+	std::string					getTime();
 }
 
 #endif

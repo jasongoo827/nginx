@@ -22,6 +22,16 @@ namespace utils
 		return token_vec;
 	}
 
+	std::vector<std::string> SplitToVector(const std::string& s, char delimeter)
+	{
+		std::istringstream iss(s);
+		std::string token;
+		std::vector<std::string> token_vec;
+		while (getline(iss, token, delimeter))
+			token_vec.push_back(token);
+		return token_vec;
+	}
+
 	Status ParseVariable(std::string& dst, std::string& src)
 	{
 		std::vector<std::string> token_vec = SplitToVector(src);
@@ -148,5 +158,13 @@ namespace utils
 		iss >> num;
 		return (num);
 	}
-}
 
+	std::string	getTime()
+	{
+		std::time_t current_time = std::time(NULL);
+		std::tm* time_info = std::gmtime(&current_time);
+		char buffer[100];
+		std::strftime(buffer, 80, "%a, %d %b %Y %H:%M:%S GMT", time_info);
+		return (buffer);
+	}
+}
