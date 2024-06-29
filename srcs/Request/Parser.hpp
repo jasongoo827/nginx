@@ -2,10 +2,6 @@
 # define PARSER_H
 
 # include "Request.hpp"
-# include <sstream>
-
-# define CHUNK_SIZE	0
-# define CHUNK_DATA	1
 
 class Request;
 
@@ -17,13 +13,13 @@ public:
 	~Parser();
 
 	// method
-	bool	parse_startline(Request &request);
-	bool	parse_header(Request &request);
-	bool	parse_body(Request &request);
-	bool	parse_trailer(Request &request);
+	void	ParseStartline(Request &request);
+	void	ParseHeader(Request &request);
+	void	ParseBody(Request &request);
+	void	ParseTrailer(Request &request);
 
 private:
-	std::istringstream	data;
+	std::string	data;
 	// forbidden method
 	Parser();
 	Parser(const Parser& copy);

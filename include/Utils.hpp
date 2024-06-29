@@ -30,6 +30,14 @@ namespace utils
 	double						strtod(std::string& s);
 	ssize_t 					stoi(std::string& s);
 	std::string					getTime();
+	std::string					DivideStrByCRLF(std::string &data);
+	std::string					DivideStrBySpace(std::string &data);
+	void						TrimSpaceTap(std::string &trgt);
+	int							hstoi(const std::string &trgt);
+	int							ReadChunkSize(std::string &data);
+	std::string					ReadData(std::string &data, int size);
+	int							CheckLastWhiteSpace(std::string &data);
+	void						SplitHeaderData(std::string &data, std::string &name, std::string &value);
 }
 
 #endif

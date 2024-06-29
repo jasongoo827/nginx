@@ -167,4 +167,121 @@ namespace utils
 		std::strftime(buffer, 80, "%a, %d %b %Y %H:%M:%S GMT", time_info);
 		return (buffer);
 	}
+
+	std::string	DivideStrByCRLF(std::string &data)
+	{
+		std::string res;
+
+		size_t pos = data.find("\r\n");
+		if (pos != std::string::npos)
+		{
+			res = data.substr(0, pos);
+			data.erase(0, pos + 2);
+		}
+		else
+		{
+			pos = data.size();
+			res = data.substr(0, pos);
+			data.erase(0, data.size());
+		}
+		return res;
+	}
+
+	std::string	DivideStrBySpace(std::string &data)
+	{
+		std::string res;
+
+		size_t pos = data.find(' ');
+		if (pos != std::string::npos)
+		{
+			res = data.substr(0, pos);
+			data.erase(0, pos + 1);
+		}
+		else
+			res = DivideStrByCRLF(data);
+		return res;
+	}
+
+	void	TrimSpaceTap(std::string &trgt)
+	{
+		while (trgt[0] == ' ' || trgt[0] == '\t')
+			trgt.erase(0, 1);
+		while (trgt[trgt.size() - 1] == ' ' || trgt[trgt.size() - 1] == '\t')
+			trgt.erase(trgt.size() - 1);
+	}
+
+	int	hstoi(const std::string &trgt)
+	{
+		const char *tmp_str = trgt.c_str();
+		int	cur_num = 0;
+
+		while (*tmp_str != '\0')
+		{
+			if (std::isdigit(*tmp_str) ||
+			('A' <= *tmp_str && *tmp_str <= 'F') ||
+			('a' <= *tmp_str && *tmp_str <= 'f'))
+			{
+				cur_num *= 16;
+				if (cur_num > 1000000)
+					return (-1);
+				if (std::isdigit(*tmp_str))
+					cur_num += *tmp_str - 48;
+				else if (std::isupper(*tmp_str))
+					cur_num += *tmp_str - 55;
+				else
+					cur_num += *tmp_str - 87;
+				tmp_str++;
+			}
+			else if (*tmp_str == ';')
+				break ;
+			else
+				return (-1);
+		}
+		return (cur_num);
+	}
+
+	int	ReadChunkSize(std::string &data)
+	{
+		std::string	tmp_str = DivideStrByCRLF(data);
+		int	size = 0;
+
+		if (tmp_str.empty())
+			return -1;
+		size = hstoi(tmp_str);
+		return size;
+	}
+
+	std::string	ReadData(std::string &data, int size)
+	{
+		std::string	tmp_str = data.substr(0, size);
+		data.erase(0, size);
+		if (tmp_str.find("\r\n") == std::string::npos)
+			DivideStrByCRLF(data);
+		return tmp_str;
+	}
+
+	int	CheckLastWhiteSpace(std::string &data)
+	{
+		int	last_pos = data.size() - 1;
+		if (data.find(' ') == last_pos || data.find('\t') == last_pos)
+		{
+			std::cout << "\n**in7**\n";
+			return 1;
+		}
+		return 0;
+	}
+
+	void	SplitHeaderData(std::string &data, std::string &name, std::string &value)
+	{
+		int i = 0;
+
+		name = data.substr(0, data.find(':'));
+		value = data.substr(data.find(':') + 1);
+		while (name[i] != '\0')
+		{
+			name[i] = std::tolower(name[i]);
+			i++;
+		}
+		utils::TrimSpaceTap(value);
+	}
 }
