@@ -8,6 +8,8 @@
 # include "Locate.hpp"
 # include "Cgi.hpp"
 # include "Enum.hpp"
+# include <sys/event.h>
+
 
 class Connection
 {
@@ -17,7 +19,7 @@ public:
 	~Connection();
 	Connection& operator=(const Connection& ref);
 
-	void	mainprocess();
+	void	mainprocess(struct kevent& event);
 	void	readClient();
 	void	makeResponse();
 	void	parserequest();

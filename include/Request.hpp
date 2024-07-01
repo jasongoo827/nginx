@@ -2,6 +2,7 @@
 # define REQUEST_H
 
 # include "Utils.hpp"
+# include "Enum.hpp"
 
 enum Incomplete
 {
@@ -10,14 +11,6 @@ enum Incomplete
 	WRONG_HEADER,
 	INVALID_CHUNK,
 	BODY_SIZE
-};
-
-enum Method
-{
-	GET,
-	POST,
-	DELETE,
-	OTHER
 };
 
 class Request
@@ -42,6 +35,7 @@ public:
 	std::map<std::string, std::string>&	GetHeader();
 	const std::string&					GetBody();
 	enum Incomplete						GetStatus();
+	void								cutbody(ssize_t size);
 	const std::string					FindValueInHeader(const std::string &key);
 
 private:

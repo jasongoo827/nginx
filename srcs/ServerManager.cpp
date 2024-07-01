@@ -14,7 +14,7 @@ ServerManager::ServerManager()
 
 ServerManager::ServerManager(const ServerManager& ref)
 {
-
+	(void)ref;
 }
 
 ServerManager::~ServerManager()
@@ -24,16 +24,21 @@ ServerManager::~ServerManager()
 
 ServerManager& ServerManager::operator=(const ServerManager& ref)
 {
+	(void)ref;
+	return (*this);
+}
 
+ServerManager ServerManager::servermanager = ServerManager();
+
+ServerManager&	ServerManager::GetInstance()
+{
+	return (servermanager);
 }
 
 bool		ServerManager::RunServer(Config* config)
 {
-	int							kq, event_count;
 	struct kevent				change_event;
 	struct kevent				events[20]; /* config에서 파싱 가능하다면 동적 할당 방식으로 변경해야함 */
-	int							sock_serv;
-	struct sockaddr_in			addr_serv;
 
 	while(true)
 	{
@@ -51,33 +56,40 @@ bool		ServerManager::RunServer(Config* config)
 
 		/* 서버 소켓에 연결 요청이 들어온 경우
 		새로운 소켓에 대해 accept하고 fd를 리턴값으로 받아 sock_client에 저장한다 */
-
+		std::cout << "socket setting done\n";
 		while (1)
 		{
 			if (CheckEvent(kq, events, event_count, sock_serv) == false)
+			{
+				std::cout << "no event occured\n";
 				break ;
+			}
 			for (int i = 0; i < event_count; ++i)
 			{
-				if (events[i].filter == EVFILT_READ)
+				std::cout << "event occured\n";
+				if (events[i].filter == EVFILT_READ && events[i].ident == static_cast<size_t>(sock_serv))
 				{
-					if (events[i].ident == sock_serv)
-					{
-						int 				sock_client;
-						struct sockaddr_in	addr_client;
+					int 				sock_client;
+					struct sockaddr_in	addr_client;
 
-						if (InitClientSocket(kq, sock_serv, change_event, sock_client, addr_client, sizeof(addr_client)) == false)
-							continue ; // 실패한 client를 제외한 나머지 이벤트에 대한 처리를 위해 continue
-						v_connection.push_back(Connection(sock_client, addr_client, config));
-						AddConnectionMap(sock_client, v_connection.back());
-					}
+					if (InitClientSocket(kq, sock_serv, change_event, sock_client, addr_client, sizeof(addr_client)) == false)
+						continue ; // 실패한 client를 제외한 나머지 이벤트에 대한 처리를 위해 continue
+					Connection con = Connection(sock_client, addr_client, config);
+					v_connection.push_back(con);
+					std::cout << v_connection.back().GetClientSocketFd() << '\n';
+					AddConnectionMap(sock_client, v_connection.back());
+					std::cout << "client accepted\n";
+					std::cout << sock_client << "\n";
 				}
 				else
 				{
-					connectionmap[events[i].ident]->mainprocess(events[i].filter);
+					std::cout << "before mainprocess\n";
+					std::cout << connectionmap[events[i].ident]->GetClientSocketFd() << '\n';
+					connectionmap[events[i].ident]->mainprocess(events[i]);
 				}
 			}
 		}
-		CloseAllConnection(kq, sock_serv);
+		CloseAllConnection();
 	}
 	return (0);
 }
@@ -139,6 +151,7 @@ bool	ServerManager::InitServerSocket(int &sock_serv, sockaddr_in &addr_serv)
 
 bool	ServerManager::InitClientSocket(int &kq, int &sock_serv, struct ::kevent &change_event, int &sock_client, sockaddr_in &addr_client, socklen_t addr_client_len)
 {
+	std::cout << "start init socket\n";
 	/* 서버 소켓으로 요청이 발생하는 경우 연결 요청이므로 신규 클라이언트 연결 */
 	sock_client = accept(sock_serv, (sockaddr*)&addr_client, &addr_client_len);
 	if (sock_client < 0)
@@ -211,14 +224,23 @@ bool	ServerManager::CheckEvent(int &kq, struct ::kevent *events, int &event_coun
 	return (true);
 }
 
-void	ServerManager::CloseConnection(struct ::kevent &change_event, std::vector<int> &v_sock_client, std::vector<sockaddr_in> &v_addr_client, int &kq, int &sock_client, struct sockaddr_in &addr_client)
+void	ServerManager::CloseConnection(int &sock_client)
 {
+	struct ::kevent change_event;
+
 	EV_SET(&change_event, sock_client, EVFILT_READ, EV_DELETE, 0, 0, NULL);
 	kevent(kq, &change_event, 1, NULL, 0, NULL);
+	RemoveConnectionMap(sock_client); //nedd file or cgi remove from map
+	std::vector<Connection>::iterator it;
+	for (it = v_connection.begin(); it != v_connection.end(); ++it)
+	{
+		if (it->GetClientSocketFd() == sock_client)
+			v_connection.erase(it);
+	}
 	close(sock_client);
 }
 
-void	ServerManager::CloseAllConnection(std::vector<int> &v_sock_client, std::vector<sockaddr_in> &v_addr_client, int &kq, int &sock_serv)
+void	ServerManager::CloseAllConnection()
 {
 	for (size_t i = 0; i < v_connection.size(); ++i)
 		close(v_connection[i].GetClientSocketFd());
@@ -238,3 +260,16 @@ void		ServerManager::RemoveConnectionMap(int fd)
 	connectionmap.erase(fd);
 }
 
+void		ServerManager::AddWriteEvent(int client_socket_fd)
+{
+	struct kevent change_event;
+	EV_SET(&change_event, client_socket_fd, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
+	std::cout << "kq: " << kq << "\n";
+	int ret = kevent(kq, &change_event, 1, NULL, 0, NULL);
+	if (ret < 0)
+	{
+		std::cout << "fail to add writeevent\n";
+		std::cout << errno << "\n";
+	}
+
+}

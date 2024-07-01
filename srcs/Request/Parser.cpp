@@ -30,8 +30,10 @@ void	Parser::ParseHeader(Request &request)
 
 	if (request.GetStatus() != NO_ERROR)
 		return ;
+	std::cout << "1\n";
 	while (!data.empty())
 	{
+		std::cout << "2\n";
 		tmp_str = utils::DivideStrByCRLF(data);
 		if (tmp_str.empty())
 			break;
@@ -48,6 +50,7 @@ void	Parser::ParseHeader(Request &request)
 	}
 	if (request_header.empty() || request_header.find("host") == request_header.end())
 		request.SetStatus(WRONG_HEADER);
+	std::cout << "3, " << request.GetStatus() << "\n";
 };
 
 void	Parser::ParseBody(Request &request)
@@ -60,14 +63,18 @@ void	Parser::ParseBody(Request &request)
 		return ;
 	if (request.GetMethod() == POST)
 	{
+		std::cout << "4\n";
 		if (request.FindValueInHeader("transfer-encoding") == "chunked")
 		{
+			std::cout << "5\n";
 			int	cur_size = utils::ReadChunkSize(data);
 			while (cur_size > 0)
 			{
+				std::cout << "6\n";
 				tmp_str = utils::ReadData(data, cur_size);
 				data_size += cur_size;
-				if (tmp_str.size() != cur_size)
+				std::cout << "7\n";
+				if (tmp_str.size() != static_cast<size_t>(cur_size))
 				{
 					request.SetStatus(INVALID_CHUNK);
 					break ;
@@ -89,11 +96,12 @@ void	Parser::ParseBody(Request &request)
 			if (request.FindValueInHeader("content-length").empty() || data_size < 0 || 1000000 < data_size)
 				request.SetStatus(BODY_SIZE);
 			tmp_str = utils::ReadData(data, data_size);
-			if (tmp_str.size() != data_size)
+			if (tmp_str.size() != static_cast<size_t>(data_size))
 				request.SetStatus(BODY_SIZE);
 		}
 	}
 	request.SetBody(body);
+	std::cout << "8, " << request.GetStatus() << "\n";
 };
 
 void	Parser::ParseTrailer(Request &request)
@@ -146,4 +154,5 @@ void	Parser::ParseTrailer(Request &request)
 			request.SetStatus(WRONG_HEADER);
 		request_header.insert(std::make_pair(trailer_name, trailer_value));
 	}
+	std::cout << "9, " << request.GetStatus() << "\n";
 };

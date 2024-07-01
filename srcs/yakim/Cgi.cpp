@@ -12,7 +12,7 @@ Cgi::Cgi()
 
 Cgi::Cgi(const Cgi& ref)
 {
-
+	(void)ref;
 }
 
 Cgi::~Cgi()
@@ -23,8 +23,21 @@ Cgi::~Cgi()
 
 Cgi& Cgi::operator=(const Cgi& ref)
 {
-
+	(void)ref;
+	return (*this);
 }
+
+
+int*	Cgi::GetPipeIn()
+{
+	return (pipe_in);
+}
+
+int*	Cgi::GetPipeOut()
+{
+	return (pipe_out);
+}
+
 
 /*
 AUTH_TYPE:			-
@@ -68,35 +81,31 @@ void	Cgi::setEnv(Request& req, const Server& ser)
 	envmap[std::string("SERVER_NAME")] = ser.GetServerName();
 	envmap[std::string("SERVER_PORT")] = ser.GetPort();
 	envmap[std::string("SERVER_PROTOCOL")] = std::string("HTTP/1.1");
-	envmap[std::string("SERVER_SOFTWARE")] = std::string("webserv/1.0");
+	envmap[std::string("SERVER_SOFTWARE")] = std::string("nginx/0.1");
 
 	makeEnvp();
 }
 
-void	Cgi::setPipe()
+Status	Cgi::setPipe()
 {
-	int flag;
-	if (pipe(pipe_in) == -1)
+	if (pipe(pipe_in) == -1 || pipe(pipe_out) == -1)
 	{
-		
-	}
-	if (pipe(pipe_out) == -1)
-	{
-
+		return (Status::Error("pipe error"));
 	}
 
 	utils::SetNonBlock(pipe_in[0]);
 	utils::SetNonBlock(pipe_in[1]);
 	utils::SetNonBlock(pipe_out[0]);
 	utils::SetNonBlock(pipe_out[1]);
+	return (Status::OK());
 }
 
-void	Cgi::cgiExec()
+Status	Cgi::CgiExec()
 {
 	pid_t pid = fork();
 	if (pid < 0)
 	{
-		return Status::Error();
+		return Status::Error("error");
 	}
 	if (pid == 0)
 	{
@@ -106,7 +115,10 @@ void	Cgi::cgiExec()
 		close(pipe_in[1]);
 		close(pipe_out[0]);
 		close(pipe_out[1]);
-		char* argv[] = { strdup(path.c_str()), NULL };
+		char* argv[2];
+		std::string s("./usr/cgi/upload.php");
+		argv[0] = &s[0];
+		argv[1] = NULL;
 		if (execve(argv[0], argv, envp.data()) == -1)
 		{
 			std::exit(1);
@@ -116,9 +128,8 @@ void	Cgi::cgiExec()
 	{
 		close(pipe_in[0]);
 		close(pipe_out[1]);
-		ServerManager::AddConnectionMap(pipe_in[1], *this);
-		ServerManager::AddConnectionMap(pipe_out[0], *this);
 	}
+	return (Status::OK());
 }
 
 void	Cgi::makeEnvp()

@@ -12,7 +12,9 @@ CONFIG = srcs/Config
 
 SRCS = $(wildcard srcs/Config/*.cpp) \
 		$(wildcard srcs/*.cpp) \
-		$(wildcard srcs/Request/*.cpp)
+		$(wildcard srcs/Request/*.cpp) \
+		$(wildcard srcs/yakim/*.cpp)
+
 
 OBJS = $(SRCS:%.cpp=%.o)
 

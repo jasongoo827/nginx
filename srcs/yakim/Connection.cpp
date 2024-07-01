@@ -5,6 +5,7 @@
 #include "ServerManager.hpp"
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/event.h>
 #include <sstream>
 #include <iterator>
 #include <fcntl.h>
@@ -23,7 +24,10 @@ Connection::Connection(int clinet_socket_fd, sockaddr_in client_socket_addr, Con
 
 Connection::Connection(const Connection& ref)
 {
-
+	this->client_socket_fd = ref.client_socket_fd;
+	this->client_socket_addr = ref.client_socket_addr;
+	this->config_ptr = ref.config_ptr;
+	this->progress = ref.progress;
 }
 
 Connection::~Connection()
@@ -33,35 +37,46 @@ Connection::~Connection()
 
 Connection&	Connection::operator=(const Connection& ref)
 {
-
+	(void)ref;
+	return (*this);
 }
 
-void	Connection::mainprocess()
+void	Connection::mainprocess(struct kevent& event)
 {
-	if (progress == FROM_CLIENT)
+	std::cout << progress << event.filter << "\n";
+	if (progress == FROM_CLIENT && event.filter == EVFILT_READ)
 	{
 		readClient();
+		std::cout << "read done";
 		makeResponse();
-		if (response.get_status() == 200)
-			;
+		if (progress == TO_CLIENT)
+		{
+			std::cout << "do combine\n";
+			response.combineMessage();
+			ServerManager::GetInstance().AddWriteEvent(client_socket_fd);
+		}
 	}
-	else if (progress == TO_CGI)
+	else if (progress == TO_CGI && event.filter == EVFILT_WRITE)
 		sendCgi();
-	else if (progress == FROM_CGI)
+	else if (progress == FROM_CGI && event.filter == EVFILT_READ)
 		readCgi();
-	else if (progress == FROM_FILE)
+	else if (progress == FROM_FILE && event.filter == EVFILT_READ)
 		readFile();
-	else if (progress == TO_CLIENT)
+	else if (progress == TO_CLIENT && event.filter == EVFILT_WRITE)
+	{
+		std::cout << "sendMessage\n";
 		sendMessage();
+	}
 }
 
 void	Connection::readClient()
 {
 	char				buffer[1000000];
+	std::cout << client_socket_fd << "\n";
 	ssize_t				nread = read(client_socket_fd, buffer, sizeof(buffer));
 
 	if (nread <= 0)
-		ServerManager::CloseConnection(change_event, v_sock_client, v_addr_client, kq, sock_client, addr_client);
+		ServerManager::GetInstance().CloseConnection(client_socket_fd);
 	else
 	{
 		std::cout << "\n\n원본 메시지\n" << std::string(buffer, nread) << "\n\n\n";
@@ -86,22 +101,25 @@ void	Connection::makeResponse()
 	//http/1.1 인데 host 헤더가 없을 때
 	if (request.GetVersion() == "HTTP/1.1")
 	{
-		if (request.GetHeader().find("Host") == request.GetHeader().end())
+		if (request.GetHeader().find("host") == request.GetHeader().end())
 		{
+			std::cout << "cant find host header\n";
 			response.make_response_40x(400);
+			progress = TO_CLIENT;
 			return ;
 		}
 	}
 	//request에 맞는 server 찾기
 	server_ptr = &config_ptr->GetServerVec().front();
-	for (std::vector<const Server>::iterator iter = config_ptr->GetServerVec().begin(); iter != config_ptr->GetServerVec().end(); iter++)
-	{
-		if (std::find(request.GetHeader().begin(), request.GetHeader().end(), iter->GetServerName()) != 0)
-		{
-			server_ptr = &(*iter);
-			break ;
-		}
-	}
+	std::cout << server_ptr << "\n";
+	// for (std::vector<const Server>::iterator iter = config_ptr->GetServerVec().begin(); iter != config_ptr->GetServerVec().end(); iter++)
+	// {
+	// 	if (std::find(request.GetHeader().begin(), request.GetHeader().end(), iter->GetServerName()) != request.GetHeader().end())
+	// 	{
+	// 		server_ptr = &(*iter);
+	// 		break ;
+	// 	}
+	// }
 	//request에 맞는 location 찾기
 	locate_ptr = NULL;
 	const std::vector<Locate>& locate_vec = server_ptr->GetLocateVec();
@@ -109,19 +127,24 @@ void	Connection::makeResponse()
 	for (size_t i = 0; i < locate_vec.size(); ++i)
 	{
 		const std::string& s = request.GetUrl();
-		if (s.find(locate_vec[i].GetRoot()) == 0)
+		std::cout << "url: " << request.GetUrl() << "\n";
+		std::cout << "findurl: " << locate_vec[i].GetLocatePath() << "\n";
+		if (s.find(locate_vec[i].GetLocatePath()) != std::string::npos)
 		{
-			if (locate_vec[i].GetRoot().size() > longest)
+			if (locate_vec[i].GetLocatePath().size() > longest)
 			{
-				longest = locate_vec[i].GetRoot().size();
+				longest = locate_vec[i].GetLocatePath().size();
 				locate_ptr = &locate_vec[i];
+				std::cout << "longest: " << longest << "\n";
+				std::cout << "url: " << request.GetUrl() << "\n";
 			}
-
 		}
 	}
 	if (locate_ptr == NULL)
 	{
+		std::cout << "cant find locate\n";
 		response.make_response_40x(404);
+		progress = TO_CLIENT;
 		return ;
 	}
 	//request 유효성 검사끝
@@ -130,18 +153,28 @@ void	Connection::makeResponse()
 	//method 종류를 지원하는지 확인
 	if (request.GetMethod() == OTHER)
 	{
+		std::cout << "method not defined\n";
 		response.make_response_50x(501);
+		progress = TO_CLIENT;
 		return ;
 	}
 
 	//method 가 해당 로케이션에서 쓸 수 있는지 확인
 	const std::vector<enum Method>& vec = locate_ptr->GetMethodVec();
+	int flag = 0;
 	for (size_t i = 0; i < vec.size(); i++)
 	{
 		if(vec[i] == request.GetMethod())
+		{
+			flag = 1;
 			break ;
-
+		}
+	}
+	if (flag == 0)
+	{
+		std::cout << "cant find allowd method\n";
 		response.make_response_40x(403);
+		progress = TO_CLIENT;
 		return ;
 	}
 
@@ -150,6 +183,8 @@ void	Connection::makeResponse()
 	{
 		int code = locate_ptr->GetRedirectPair().first;
 		response.make_response_30x(code);
+		std::cout << "redirected with" << code << "\n";
+		progress = TO_CLIENT;
 		return ;
 	}
 
@@ -157,6 +192,7 @@ void	Connection::makeResponse()
 	path = "";
 	path += locate_ptr->GetRoot();
 	path += request.GetUrl();
+	std::cout << "path: " << path << "\n";
 	
 
 	//file, dir, cgi 판단 및 분기
@@ -213,7 +249,7 @@ void	Connection::processDir()
 	//check if autoindex is on
 	if (locate_ptr->GetAutoIndex())
 	{
-		response.autoindex();
+		// response.autoindex();
 		return ;
 	}
 	else
@@ -250,23 +286,24 @@ void	Connection::processFile()
 	fcntl(file_fd, F_SETFL, flag | O_NONBLOCK);
 
 	//파일 디스크립터와 connection 개체 map 추가
-	ServerManager::AddConnectionMap(file_fd, *this);
+	ServerManager::GetInstance().AddConnectionMap(file_fd, *this);
 	progress = FROM_FILE;
 }
 
 void	Connection::sendMessage()
 {
 	const std::string &buffer = response.getMessage();
-	ssize_t send_size = write(client_socket_fd, buffer.data(), response.getMessageSize());
+	std::cout << "messagesize: " << response.getMessage().size() << "\n";
+	ssize_t send_size = write(client_socket_fd, buffer.data(), response.getMessageSize() - 1);
 	if (send_size < 0)
 	{
-		ServerManager::CloseConnection(client_socket_fd, *this);
+		ServerManager::GetInstance().CloseConnection(client_socket_fd);
 		return ;
 	}
 	else if (send_size == response.getMessageSize())
 	{
 		//response 완료
-		ServerManager::CloseConnection(client_socket_fd, *this);
+		ServerManager::GetInstance().CloseConnection(client_socket_fd);
 		return ;
 	}
 	else
@@ -293,14 +330,16 @@ void	Connection::processCgi()
 	cgi.setPipe();
 
 	//cgi 실행
-	if (cgi.cgiExec())
+	if (cgi.CgiExec().ok())
 	{
+		ServerManager::GetInstance().AddConnectionMap(cgi.GetPipeIn()[1], *this);
+		ServerManager::GetInstance().AddConnectionMap(cgi.GetPipeOut()[0], *this);
 		progress = TO_CGI;
 	}
 	else
 	{
 		response.make_response_50x(500);
-		ServerManager::AddConnectionMap(client_socket_fd, *this);
+		ServerManager::GetInstance().AddConnectionMap(client_socket_fd, *this);
 		progress = TO_CLIENT;
 	}
 
@@ -311,7 +350,7 @@ void	Connection::readCgi()
 	std::string buff;
 	ssize_t	maxsize = 65535;
 	buff.resize(maxsize);
-	size_t readsize = read(cgi_output_fd, &buff[0], maxsize);
+	ssize_t readsize = read(cgi_output_fd, &buff[0], maxsize);
 	if (readsize < 0)
 	{
 		response.make_response_50x(500);
@@ -325,8 +364,8 @@ void	Connection::readCgi()
 	else
 	{
 		response.addBody(buff, readsize);
-		ServerManager::CloseConnection(cgi_output_fd, *this);
-		ServerManager::AddConnectionMap(client_socket_fd, *this);
+		ServerManager::GetInstance().CloseConnection(cgi_output_fd);
+		ServerManager::GetInstance().AddConnectionMap(client_socket_fd, *this);
 		progress = TO_CLIENT;
 		return ;
 	}
@@ -337,7 +376,7 @@ void	Connection::sendCgi()
 	std::string buff;
 	ssize_t	maxsize = 65535;
 	buff.resize(maxsize);
-	size_t writesize = write(cgi_input_fd, request.get_body().data(), maxsize);
+	ssize_t writesize = write(cgi_input_fd, request.GetBody().data(), maxsize);
 	if (writesize < 0)
 	{
 		response.make_response_50x(500);
@@ -350,7 +389,7 @@ void	Connection::sendCgi()
 	}
 	else
 	{
-		ServerManager::CloseConnection(cgi_input_fd);
+		ServerManager::GetInstance().CloseConnection(cgi_input_fd);
 		return ;
 	}
 }
@@ -360,7 +399,7 @@ void	Connection::readFile()
 	std::string buff;
 	ssize_t maxsize = server_ptr->GetClientBodySize();
 	buff.resize(maxsize);
-	size_t readsize = read(file_fd, &buff[0], maxsize);
+	ssize_t readsize = read(file_fd, &buff[0], maxsize);
 	if (readsize < 0)
 	{
 		response.make_response_50x(500);
@@ -374,8 +413,8 @@ void	Connection::readFile()
 	else
 	{
 		response.addBody(buff, readsize);
-		ServerManager::CloseConnection(file_fd, *this);
-		ServerManager::AddConnectionMap(client_socket_fd, *this);
+		ServerManager::GetInstance().RemoveConnectionMap(file_fd);
+		ServerManager::GetInstance().AddConnectionMap(client_socket_fd, *this);
 		progress = TO_CLIENT;
 		return ;
 	}

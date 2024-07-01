@@ -13,9 +13,12 @@ public:
 	~Cgi();
 	Cgi& operator=(const Cgi& ref);
 
+	int*	GetPipeIn();
+	int*	GetPipeOut();
+
 	void	setEnv(Request& req, const Server& ser);
-	void	setPipe();
-	void	cgiExec();
+	Status	setPipe();
+	Status	CgiExec();
 	void	makeEnvp();
 
 

@@ -76,6 +76,11 @@ const std::string&	Request::GetBody()
 	return this->body;
 };
 
+void	Request::cutbody(ssize_t size)
+{
+	this->body.erase(0, size);
+}
+
 enum Incomplete	Request::GetStatus()
 {
 	return this->status;

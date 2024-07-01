@@ -24,7 +24,7 @@ public:
 	const std::string&					getBody();
 	const std::string&					getMessage();
 	ssize_t								getMessageSize();
-	const std::string&					getReason(int status);
+	const std::string					getReason(int status);
 	void								cutMessage(ssize_t size);
 	void								addHeader(std::string key, std::string value);
 	void								addBasicHeader();

@@ -1,4 +1,5 @@
 #include "Utils.hpp"
+#include "Server.hpp"
 
 namespace utils
 {
@@ -309,4 +310,9 @@ bool	operator==(const sockaddr_in& lhs, const sockaddr_in& rhs)
 	return	lhs.sin_family == rhs.sin_family &&
 	lhs.sin_port == rhs.sin_port &&
 	lhs.sin_addr.s_addr == rhs.sin_addr.s_addr;
+}
+
+bool	operator==(const std::pair<const std::__1::basic_string<char>, std::__1::basic_string<char> >& lhs, const std::__1::basic_string<char>& rhs)
+{
+	return	lhs.second == rhs;
 }

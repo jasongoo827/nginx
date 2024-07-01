@@ -30,7 +30,6 @@ int main(int argc, char *argv[], char *envp[])
 		}
 		// config.PrintConfigInfo();
 	}
-
-	ServerManager servermanager;
-	servermanager.RunServer(&config);
+	std::cout << "config done" << std::endl;
+	ServerManager::GetInstance().RunServer(&config);
 }
