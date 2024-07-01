@@ -1,4 +1,5 @@
 #include "Cgi.hpp"
+#include "ServerManager.hpp"
 #include <string>
 #include <fcntl.h>
 #include <unistd.h>
@@ -58,12 +59,12 @@ void	Cgi::setEnv(Request& req, const Server& ser)
 	envmap[std::string("CONTENT_LENGTH")] = std::string("");//length
 	envmap[std::string("CONTENT_TYPE")] = "php-cgi";
 	envmap[std::string("GATEWAY_INTERFACE")] = std::string("CGI/1.1");
-	envmap[std::string("PATH_INFO")] = std::string(req.get_url());
-	envmap[std::string("PATH_TRANSLATED")] = std::string(req.get_url());//
+	envmap[std::string("PATH_INFO")] = std::string(req.GetUrl());
+	envmap[std::string("PATH_TRANSLATED")] = std::string(req.GetUrl());//
 	envmap[std::string("QUERY_STRING")] = "";
 	envmap[std::string("REMOTE_ADDR")] = "127.0.0.1";
-	envmap[std::string("REQUEST_METHOD")] = req.get_method();
-	envmap[std::string("SCRIPT_NAME")] = std::string(req.get_url());
+	envmap[std::string("REQUEST_METHOD")] = req.GetMethod();
+	envmap[std::string("SCRIPT_NAME")] = std::string(req.GetUrl());
 	envmap[std::string("SERVER_NAME")] = ser.GetServerName();
 	envmap[std::string("SERVER_PORT")] = ser.GetPort();
 	envmap[std::string("SERVER_PROTOCOL")] = std::string("HTTP/1.1");
@@ -84,42 +85,10 @@ void	Cgi::setPipe()
 
 	}
 
-	flag = fcntl(pipe_in[0], F_GETFL, 0);
-	if (flag == -1)
-	{
-
-	}
-	if (fcntl(pipe_in[0], F_SETFL, flag | O_NONBLOCK) == -1)
-	{
-
-	}
-	flag = fcntl(pipe_in[1], F_GETFL, 0);
-	if (flag == -1)
-	{
-
-	}
-	if (fcntl(pipe_in[1], F_SETFL, flag | O_NONBLOCK) == -1)
-	{
-
-	}
-	flag = fcntl(pipe_out[0], F_GETFL, 0);
-	if (flag == -1)
-	{
-
-	}
-	if (fcntl(pipe_out[0], F_SETFL, flag | O_NONBLOCK) == -1)
-	{
-
-	}
-	flag = fcntl(pipe_out[1], F_GETFL, 0);
-	if (flag == -1)
-	{
-
-	}
-	if (fcntl(pipe_out[1], F_SETFL, flag | O_NONBLOCK) == -1)
-	{
-
-	}
+	utils::SetNonBlock(pipe_in[0]);
+	utils::SetNonBlock(pipe_in[1]);
+	utils::SetNonBlock(pipe_out[0]);
+	utils::SetNonBlock(pipe_out[1]);
 }
 
 void	Cgi::cgiExec()
@@ -147,8 +116,8 @@ void	Cgi::cgiExec()
 	{
 		close(pipe_in[0]);
 		close(pipe_out[1]);
-		ServerManager::addMap(pipe_in[1], *this);
-		ServerManager::addMap(pipe_out[0], *this);
+		ServerManager::AddConnectionMap(pipe_in[1], *this);
+		ServerManager::AddConnectionMap(pipe_out[0], *this);
 	}
 }
 

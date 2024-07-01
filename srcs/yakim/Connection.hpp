@@ -12,13 +12,13 @@
 class Connection
 {
 public:
-	Connection();
-	Connection(int clinet_socket_fd, Config* config_ptr);
+	Connection(int clinet_socket_fd, sockaddr_in client_socket_addr, Config* config_ptr);
 	Connection(const Connection& ref);
 	~Connection();
 	Connection& operator=(const Connection& ref);
 
 	void	mainprocess();
+	void	readClient();
 	void	makeResponse();
 	void	parserequest();
 	void	processDir();
@@ -28,9 +28,11 @@ public:
 	void	readCgi();
 	void	sendCgi();
 	void	sendMessage();
+	int		GetClientSocketFd();
 
 private:
 	int						client_socket_fd;
+	struct sockaddr_in		client_socket_addr;
 	std::string				path;
 	Request					request;
 	Response				response;

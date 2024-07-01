@@ -260,12 +260,14 @@ namespace utils
 		return tmp_str;
 	}
 
-	int	CheckLastWhiteSpace(std::string &data)
+	bool	CheckNameChar(std::string &data)
 	{
-		size_t	last_pos = data.size() - 1;
-		if (data.find(' ') == last_pos || data.find('\t') == last_pos)
-			return 1;
-		return 0;
+		return (data.find_first_of("()<>@,;:\\\"/[]?={} \t") != std::string::npos);
+	}
+
+	bool	CheckHostDup(std::string &header_name, std::map<std::string, std::string> &request_header)
+	{
+		return (header_name == "host" && request_header.find("host") != request_header.end());
 	}
 
 	void	SplitHeaderData(std::string &data, std::string &name, std::string &value)
@@ -300,164 +302,11 @@ namespace utils
 		}
 		return (true);
 	}
-
-	bool	InitServerAddress(sockaddr_in &addr_serv, char *port)
-	{
-		void	*error = memset(&addr_serv, 0, sizeof(addr_serv));
-		addr_serv.sin_family = AF_INET;
-		addr_serv.sin_port = htons(atoi(port));
-		addr_serv.sin_addr.s_addr = htonl(INADDR_ANY);
-		if (error == NULL)
-		{
-			std::cerr << "memset error\n";
-			return (false);
-		}
-		return (true);
-	}
-
-	bool	InitServerSocket(int &sock_serv, sockaddr_in &addr_serv)
-	{
-		/* 서버가 사용할 소켓 생성 */
-		sock_serv = socket(AF_INET, SOCK_STREAM, 0);
-		if (sock_serv == -1)
-		{
-			std::cerr << "socket error\n";
-			close(sock_serv);
-			return (false);
-		}
-		/* 서버가 사용하는 소켓을 재활용 가능하도록 설정 */
-		int enable = 1;
-		if (setsockopt(sock_serv, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
-		{
-			std::cerr << "setsockopt fail\n";
-			close(sock_serv);
-			return (false);
-		}
-		/* 서버가 사용할 소켓에 서버의 정보 등록 */
-		if (bind(sock_serv, (struct sockaddr*)&addr_serv, sizeof(addr_serv)) == -1)
-		{
-			std::cerr << "bind error\n";
-			close(sock_serv);
-			return (false);
-		}
-		/* 서버 소켓에 대한 통신 활성화 */
-		if (listen(sock_serv, 16) == -1)
-		{
-			std::cerr << "listen error\n";
-			close(sock_serv);
-			return (false);
-		}
-		/* NonBlocking 설정 */
-		if (SetNonBlock(sock_serv) == false)
-		{
-			std::cerr << "sock_serv nonblock error\n";
-			close(sock_serv);
-			return (false);
-		}
-		return (true);
-	}
-
-	bool	InitClientSocket(int &kq, int &sock_serv, struct ::kevent &change_event, int &sock_client, sockaddr_in &addr_client, socklen_t addr_client_len)
-	{
-		/* 서버 소켓으로 요청이 발생하는 경우 연결 요청이므로 신규 클라이언트 연결 */
-		sock_client = accept(sock_serv, (sockaddr*)&addr_client, &addr_client_len);
-		if (sock_client < 0)
-		{
-            if (errno == EWOULDBLOCK || errno == EAGAIN) {
-                std::cout << "Connection not found\n";
-                return (false);
-            }
-			else
-			{
-                std::cerr << "accept fail\n";
-                return (false);
-            }
-        }
-		/* 소켓을 재활용 가능하도록 설정 */
-		int enable = 1;
-		if (setsockopt(sock_serv, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
-		{
-			std::cerr << "setsockopt fail\n";
-			close(sock_client);
-			return (false);
-		}
-		/* NonBlocking 설정 */
-		if (SetNonBlock(sock_client) == false)
-		{
-			std::cerr << "sock_client nonblock error\n";
-			close(sock_client);
-			return (false);
-		}
-		EV_SET(&change_event, sock_client, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
-		if (::kevent(kq, &change_event, 1, NULL, 0, NULL) == -1) {
-			std::cerr << "sock_serv kevent registration fail\n";
-			close(sock_client);
-			return (false);
-		}
-		return (true);
-	}
-
-	bool	InitKqueue(int &kq, int &sock_serv, struct ::kevent &change_event)
-	{
-		kq = kqueue();
-		if (kq == -1)
-		{
-			std::cerr << "kqueue fail\n";
-			close(sock_serv);
-			return (false);
-		}
-
-		EV_SET(&change_event, sock_serv, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
-		if (::kevent(kq, &change_event, 1, NULL, 0, NULL) == -1)
-		{
-			std::cerr << "sock_serv kevent registration fail\n";
-			close(sock_serv);
-			close(kq);
-			return (false);
-		}
-		return (true);
-	}
-
-	bool	CheckEvent(int &kq, struct ::kevent *events, int &event_count, int &sock_serv)
-	{
-		event_count = kevent(kq, NULL, 0, events, 20, NULL); /* config에서 파싱 가능하다면 20 대신 config 설정 수치로 변경해야함 */
-		if (event_count == -1)
-		{
-			std::cerr << "kevent wait fail\n";
-			close(sock_serv);
-			close(kq);
-			return (false);
-		}
-		return (true);
-	}
-
-	void	CloseConnection(struct ::kevent &change_event, std::vector<int> &v_sock_client, std::vector<sockaddr_in> &v_addr_client, int &kq, int &sock_client, struct sockaddr_in &addr_client)
-	{
-		EV_SET(&change_event, sock_client, EVFILT_READ, EV_DELETE, 0, 0, NULL);
-		kevent(kq, &change_event, 1, NULL, 0, NULL);
-		close(sock_client);
-		std::vector<int>::iterator it_sock = std::find(v_sock_client.begin(), v_sock_client.end(), sock_client);
-		if (it_sock != v_sock_client.end())
-			v_sock_client.erase(it_sock);
-		std::vector<sockaddr_in>::iterator it_addr = std::find(v_addr_client.begin(), v_addr_client.end(), addr_client);
-		if (it_addr != v_addr_client.end())
-			v_addr_client.erase(it_addr);
-	}
-
-	void	CloseAllConnection(std::vector<int> &v_sock_client, std::vector<sockaddr_in> &v_addr_client, int &kq, int &sock_serv)
-	{
-		for (size_t i = 0; i < v_sock_client.size(); ++i)
-			close(v_sock_client[i]);
-		close(sock_serv);
-		close(kq);
-		v_sock_client.clear();
-		v_addr_client.clear();
-	}
 }
 
 bool	operator==(const sockaddr_in& lhs, const sockaddr_in& rhs)
-	{
-		return	lhs.sin_family == rhs.sin_family &&
-		lhs.sin_port == rhs.sin_port &&
-		lhs.sin_addr.s_addr == rhs.sin_addr.s_addr;
-	}
+{
+	return	lhs.sin_family == rhs.sin_family &&
+	lhs.sin_port == rhs.sin_port &&
+	lhs.sin_addr.s_addr == rhs.sin_addr.s_addr;
+}
