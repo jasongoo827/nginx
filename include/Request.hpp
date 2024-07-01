@@ -1,10 +1,7 @@
 #ifndef REQUEST_H
 # define REQUEST_H
 
-# include <iostream>
-# include <string>
-# include <vector>
-# include <map>
+# include "Utils.hpp"
 
 enum Incomplete
 {
