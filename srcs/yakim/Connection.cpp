@@ -79,7 +79,7 @@ void	Connection::makeResponse()
 	size_t	longest = 0;
 	for (size_t i = 0; i < locate_vec.size(); ++i)
 	{
-		const std::string& s = request.get_uri();
+		const std::string& s = request.get_url();
 		if (s.find(locate_vec[i].GetRoot()) == 0)
 		{
 			if (locate_vec[i].GetRoot().size() > longest)
@@ -127,7 +127,7 @@ void	Connection::makeResponse()
 	//filepath 만들기
 	path = "";
 	path += locate_ptr->GetRoot();
-	path += request.get_uri();
+	path += request.get_url();
 	
 
 	//file, dir, cgi 판단 및 분기
@@ -265,7 +265,17 @@ void	Connection::processCgi()
 	cgi.setPipe();
 
 	//cgi 실행
-	cgi.cgiExec();
+	if (cgi.cgiExec())
+	{
+		progress = TO_CGI;
+	}
+	else
+	{
+		response.make_response_50x(500);
+		ServerManager::addConnection(client_socket_fd);
+		progress = TO_CLIENT;
+	}
+
 }
 
 void	Connection::readCgi()
@@ -299,7 +309,7 @@ void	Connection::sendCgi()
 	std::string buff;
 	ssize_t	maxsize = 65535;
 	buff.resize(maxsize);
-	size_t writesize = write(cgi_input_fd, request.get_body(), maxsize);
+	size_t writesize = write(cgi_input_fd, request.get_body().data(), maxsize);
 	if (writesize < 0)
 	{
 		response.make_response_50x(500);

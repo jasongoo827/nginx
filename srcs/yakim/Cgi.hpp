@@ -13,7 +13,7 @@ public:
 	~Cgi();
 	Cgi& operator=(const Cgi& ref);
 
-	void	setEnv(const Request& req, const Server& ser);
+	void	setEnv(Request& req, const Server& ser);
 	void	setPipe();
 	void	cgiExec();
 	void	makeEnvp();

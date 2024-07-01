@@ -42,7 +42,7 @@ SERVER_PROTOCOL:	HTTP/1.1
 SERVER_SOFTWARE:	config->version
 */
 
-void	Cgi::setEnv(const Request& req, const Server& ser)
+void	Cgi::setEnv(Request& req, const Server& ser)
 {
 	// size_t start = root.find_last_of("/");
 	// size_t finish = root.find_last_of(root);
@@ -58,12 +58,12 @@ void	Cgi::setEnv(const Request& req, const Server& ser)
 	envmap[std::string("CONTENT_LENGTH")] = std::string("");//length
 	envmap[std::string("CONTENT_TYPE")] = "php-cgi";
 	envmap[std::string("GATEWAY_INTERFACE")] = std::string("CGI/1.1");
-	envmap[std::string("PATH_INFO")] = req.get_path();
-	envmap[std::string("PATH_TRANSLATED")] = req.get_path();//
+	envmap[std::string("PATH_INFO")] = std::string(req.get_url());
+	envmap[std::string("PATH_TRANSLATED")] = std::string(req.get_url());//
 	envmap[std::string("QUERY_STRING")] = "";
 	envmap[std::string("REMOTE_ADDR")] = "127.0.0.1";
 	envmap[std::string("REQUEST_METHOD")] = req.get_method();
-	envmap[std::string("SCRIPT_NAME")] = req.get_path();
+	envmap[std::string("SCRIPT_NAME")] = std::string(req.get_url());
 	envmap[std::string("SERVER_NAME")] = ser.GetServerName();
 	envmap[std::string("SERVER_PORT")] = ser.GetPort();
 	envmap[std::string("SERVER_PROTOCOL")] = std::string("HTTP/1.1");

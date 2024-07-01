@@ -69,8 +69,8 @@ int main(void)
     cout << "echo server started" << endl;
 
 	int filefd = open("file.cpp", O_RDONLY);
-	// int flag = fcntl(filefd, F_GETFL, 0);
-	// fcntl(filefd, F_SETFL, flag | O_NONBLOCK);
+	int flag = fcntl(filefd, F_GETFL, 0);
+	fcntl(filefd, F_SETFL, flag | O_NONBLOCK);
 	change_events(change_list, filefd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
 
     /* main loop */

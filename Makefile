@@ -10,7 +10,9 @@ RM = rm -rf
 
 CONFIG = srcs/Config
 
-SRCS = $(wildcard srcs/Config/*.cpp) $(wildcard srcs/*.cpp)
+SRCS = $(wildcard srcs/Config/*.cpp) \
+		$(wildcard srcs/*.cpp) \
+		$(wildcard srcs/Request/*.cpp)
 
 OBJS = $(SRCS:%.cpp=%.o)
 

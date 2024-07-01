@@ -262,7 +262,7 @@ namespace utils
 
 	int	CheckLastWhiteSpace(std::string &data)
 	{
-		int	last_pos = data.size() - 1;
+		size_t	last_pos = data.size() - 1;
 		if (data.find(' ') == last_pos || data.find('\t') == last_pos)
 		{
 			std::cout << "\n**in7**\n";

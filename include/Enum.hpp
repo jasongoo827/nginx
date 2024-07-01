@@ -5,7 +5,8 @@ enum Method
 {
 	GET,
 	POST,
-	DELETE
+	DELETE,
+	OTHER
 };
 
 enum ConfigVar
@@ -34,5 +35,13 @@ enum LocateVar
 	FILEPATH = 1 << 5
 };
 
+enum CurrentProgress
+{
+	FROM_CLIENT,
+	TO_CGI,
+	FROM_CGI,
+	FROM_FILE,
+	TO_CLIENT
+};
 
 #endif
