@@ -1,15 +1,23 @@
 #ifndef UTILS_HPP
 # define UTILS_HPP
 
-#include <iostream>
-#include <vector>
-#include <map>
-#include <sstream>
-#include <utility>
-#include <stdlib.h>
-#include <sys/stat.h>
-#include <ctime>
-#include "Status.hpp"
+# include <iostream>
+# include <vector>
+# include <map>
+# include <sstream>
+# include <utility>
+# include <stdlib.h>
+# include <sys/stat.h>
+# include <ctime>
+# include "Status.hpp"
+
+// Svr Include
+# include <fcntl.h>
+# include <string.h>
+# include <unistd.h>
+# include <arpa/inet.h>
+# include <sys/socket.h>
+# include <sys/event.h>
 
 namespace utils
 {
@@ -38,6 +46,17 @@ namespace utils
 	std::string					ReadData(std::string &data, int size);
 	int							CheckLastWhiteSpace(std::string &data);
 	void						SplitHeaderData(std::string &data, std::string &name, std::string &value);
+	bool						InitServerAddress(sockaddr_in &addr_serv, char *port);
+	bool						InitServerSocket(int &sock_serv, sockaddr_in &addr_serv);
+	bool						InitClientSocket(int &kq, int &sock_serv, struct ::kevent &change_event, \
+										int &sock_client, sockaddr_in &addr_client, socklen_t addr_client_len);
+	bool						InitKqueue(int &kq, int &sock_serv, struct ::kevent &change_event);
+	bool						CheckEvent(int &kq, struct ::kevent *events, int &event_count, int &sock_serv);
+	void						CloseAllConnection(std::vector<int> &v_client_sockets, \
+										std::vector<sockaddr_in> &v_addr_client, int &kq, int &sock_serv);
+	void						CloseConnection(struct ::kevent &change_event, std::vector<int> &v_sock_client, \
+										std::vector<sockaddr_in> &v_addr_client, int &kq, int &sock_client, \
+										struct sockaddr_in &addr_client);
 }
 
 #endif

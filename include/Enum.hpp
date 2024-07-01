@@ -5,7 +5,8 @@ enum Method
 {
 	GET,
 	POST,
-	DELETE
+	DELETE,
+	OTHER
 };
 
 enum ConfigVar
