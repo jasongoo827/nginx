@@ -35,6 +35,8 @@ public:
 	void					AddConnectionMap(int, Connection&);
 	void					RemoveConnectionMap(int fd);
 	void					AddWriteEvent(int client_socket_fd);
+	void					RemoveWriteEvent(int client_socket_fd);
+	void					AddReadEvent(int fd);
 
 
 private:

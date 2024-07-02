@@ -102,19 +102,16 @@ ssize_t	Response::getMessageSize()
 void	Response::make_response_30x(int status)
 {
 	this->status = status;
-	addBasicHeader();
 }
 
 void	Response::make_response_40x(int status)
 {
 	this->status = status;
-	addBasicHeader();
 }
 
 void	Response::make_response_50x(int status)
 {
 	this->status = status;
-	addBasicHeader();
 }
 	
 void	Response::cutMessage(ssize_t size)
@@ -141,6 +138,7 @@ void	Response::combineMessage()
 	std::stringstream ss;
 
 	ss << "HTTP/1.1 " << status << " " << getReason(status) << "\r\n";
+	addBasicHeader();
 	std::map<std::string, std::string>::iterator iter;
 	for (iter = header.begin(); iter != header.end(); ++iter)
 	{
@@ -148,6 +146,7 @@ void	Response::combineMessage()
 	}
 	if (!body.empty())
 	{
+		ss << "Content_length: " << body.size() << "\r\n";
 		ss << "\r\n";
 		ss << body;
 		ss << "\r\n";

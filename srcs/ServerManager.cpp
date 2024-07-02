@@ -64,9 +64,9 @@ bool		ServerManager::RunServer(Config* config)
 				std::cout << "no event occured\n";
 				break ;
 			}
+			std::cout << "event occured " << event_count << "\n";
 			for (int i = 0; i < event_count; ++i)
 			{
-				std::cout << "event occured\n";
 				if (events[i].filter == EVFILT_READ && events[i].ident == static_cast<size_t>(sock_serv))
 				{
 					int 				sock_client;
@@ -76,14 +76,23 @@ bool		ServerManager::RunServer(Config* config)
 						continue ; // 실패한 client를 제외한 나머지 이벤트에 대한 처리를 위해 continue
 					Connection con = Connection(sock_client, addr_client, config);
 					v_connection.push_back(con);
-					std::cout << v_connection.back().GetClientSocketFd() << '\n';
+					std::cout << v_connection.back().GetClientSocketFd() << " is add to vec\n";
 					AddConnectionMap(sock_client, v_connection.back());
+					std::cout << connectionmap[sock_client]->GetClientSocketFd()<< "\n";
 					std::cout << "client accepted\n";
 					std::cout << sock_client << "\n";
 				}
 				else
 				{
-					std::cout << "before mainprocess\n";
+					std::cout << "before mainprocess: events.ident= " << events[i].ident << "\n";
+					std::cout << "connectionmap size = " << connectionmap.size() << "\n";
+					for (size_t i = 0; i < v_connection.size(); ++i)
+						std::cout << v_connection[i].GetClientSocketFd();
+					if (connectionmap.find(static_cast<int>(events[i].ident)) == connectionmap.end())
+					{
+						std::cout << "cannot find map\n";
+						continue;
+					}
 					std::cout << connectionmap[events[i].ident]->GetClientSocketFd() << '\n';
 					connectionmap[events[i].ident]->mainprocess(events[i]);
 				}
@@ -230,14 +239,19 @@ void	ServerManager::CloseConnection(int &sock_client)
 
 	EV_SET(&change_event, sock_client, EVFILT_READ, EV_DELETE, 0, 0, NULL);
 	kevent(kq, &change_event, 1, NULL, 0, NULL);
+	std::cout << "remove read event\n";
 	RemoveConnectionMap(sock_client); //nedd file or cgi remove from map
 	std::vector<Connection>::iterator it;
-	for (it = v_connection.begin(); it != v_connection.end(); ++it)
+	std::cout <<"v_connection size: "<< v_connection.size() << "\n";
+	for (it = v_connection.begin(); it != v_connection.end();)
 	{
 		if (it->GetClientSocketFd() == sock_client)
-			v_connection.erase(it);
+			it = v_connection.erase(it);
+		else
+			++it;
 	}
 	close(sock_client);
+	std::cout << "close connection " << sock_client << "\n";
 }
 
 void	ServerManager::CloseAllConnection()
@@ -271,5 +285,30 @@ void		ServerManager::AddWriteEvent(int client_socket_fd)
 		std::cout << "fail to add writeevent\n";
 		std::cout << errno << "\n";
 	}
+}
 
+void		ServerManager::RemoveWriteEvent(int client_socket_fd)
+{
+	struct kevent change_event;
+	EV_SET(&change_event, client_socket_fd, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
+	std::cout << "kq: " << kq << "\n";
+	int ret = kevent(kq, &change_event, 1, NULL, 0, NULL);
+	if (ret < 0)
+	{
+		std::cout << "fail to remove writeevent\n";
+		std::cout << errno << "\n";
+	}
+}
+
+void		ServerManager::AddReadEvent(int fd)
+{
+	struct kevent change_event;
+	EV_SET(&change_event, fd, EVFILT_READ, EV_ENABLE | EV_ADD, 0, 0, NULL);
+	std::cout << "kq: " << kq << "\n";
+	int ret = kevent(kq, &change_event, 1, NULL, 0, NULL);
+	if (ret < 0)
+	{
+		std::cout << "fail to remove writeevent\n";
+		std::cout << errno << "\n";
+	}
 }

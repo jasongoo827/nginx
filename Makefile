@@ -4,7 +4,7 @@ NAME = webserv
 
 CC = c++
 
-CFLAGS = -Wall -Werror -Wextra -Iinclude -MMD -MP -std=c++98
+CFLAGS = -Wall -Werror -Wextra -Iinclude -MMD -MP -std=c++98 -g3
 
 RM = rm -rf
 

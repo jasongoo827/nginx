@@ -19,10 +19,10 @@ Connection::Connection(int clinet_socket_fd, sockaddr_in client_socket_addr, Con
 	this->client_socket_addr = client_socket_addr;
 	this->config_ptr = config_ptr;
 	this->progress = FROM_CLIENT;
-
 }
 
 Connection::Connection(const Connection& ref)
+: request(), response(), cgi()
 {
 	this->client_socket_fd = ref.client_socket_fd;
 	this->client_socket_addr = ref.client_socket_addr;
@@ -37,13 +37,17 @@ Connection::~Connection()
 
 Connection&	Connection::operator=(const Connection& ref)
 {
-	(void)ref;
+	this->client_socket_fd = ref.client_socket_fd;
+	this->client_socket_addr = ref.client_socket_addr;
+	this->config_ptr = ref.config_ptr;
+	this->progress = ref.progress;
 	return (*this);
 }
 
 void	Connection::mainprocess(struct kevent& event)
 {
-	std::cout << progress << event.filter << "\n";
+	std::cout << "progress: " << progress << " event.filter: " << event.filter << "\n";
+	std::cout << "mainprocess for fd: " << client_socket_fd << "\n";
 	if (progress == FROM_CLIENT && event.filter == EVFILT_READ)
 	{
 		readClient();
@@ -61,7 +65,15 @@ void	Connection::mainprocess(struct kevent& event)
 	else if (progress == FROM_CGI && event.filter == EVFILT_READ)
 		readCgi();
 	else if (progress == FROM_FILE && event.filter == EVFILT_READ)
+	{
 		readFile();
+		if (progress == TO_CLIENT)
+		{
+			std::cout << "do combine\n";
+			response.combineMessage();
+			ServerManager::GetInstance().AddWriteEvent(client_socket_fd);
+		}
+	}
 	else if (progress == TO_CLIENT && event.filter == EVFILT_WRITE)
 	{
 		std::cout << "sendMessage\n";
@@ -217,6 +229,7 @@ void	Connection::makeResponse()
 void	Connection::processDir()
 {
 	//if method != GET
+	std::cout << "processdir\n";
 	if (request.GetMethod() != GET)
 	{
 		response.make_response_40x(405);
@@ -226,17 +239,20 @@ void	Connection::processDir()
 	struct stat buf;
 	if (stat(path.c_str(), &buf) == -1)
 	{
+		std::cout << "readdir failed\n";
 		response.make_response_40x(404);
 		return;
 	}
 	//check if default index file exist
-	if (!locate_ptr->GetIndexVec().empty() && locate_ptr->GetIndexVec().front() != "")
+	if (!locate_ptr->GetIndexVec().empty())
 	{
 		const std::vector<std::string> &index_vec = locate_ptr->GetIndexVec();
+		std::cout << index_vec.size() << "\n";
 		for (size_t i = 0; i < index_vec.size(); i++)
 		{
 			std::string temp = path;
 			temp += index_vec[i];
+			std::cout << "indexpath: " << temp << "\n"; 
 			struct stat buf2;
 			if (stat(temp.c_str(), &buf2) != -1)
 			{
@@ -261,16 +277,20 @@ void	Connection::processDir()
 
 void	Connection::processFile()
 {
+	std::cout << "processfile\n";
+
 	//check if file exist
 	struct stat buf;
 	if (stat(path.c_str(), &buf) == -1)
 	{
+		std::cout << "processfile: open failed\n";
 		response.make_response_40x(404);
 		return ;
 	}
 	//request as file but is directory
 	if (S_ISDIR(buf.st_mode))
 	{
+		std::cout << "processfile: is dir\n";
 		response.make_response_30x(301);
 		return ;
 	}
@@ -278,6 +298,7 @@ void	Connection::processFile()
 	file_fd = open(path.c_str(), std::ios::binary);
 	if (file_fd == -1)
 	{
+		std::cout << "processfile: open file failed\n";
 		response.make_response_40x(403);
 		return ;
 	}
@@ -287,14 +308,16 @@ void	Connection::processFile()
 
 	//파일 디스크립터와 connection 개체 map 추가
 	ServerManager::GetInstance().AddConnectionMap(file_fd, *this);
+	ServerManager::GetInstance().AddReadEvent(file_fd);
 	progress = FROM_FILE;
 }
 
 void	Connection::sendMessage()
 {
 	const std::string &buffer = response.getMessage();
-	std::cout << "messagesize: " << response.getMessage().size() << "\n";
-	ssize_t send_size = write(client_socket_fd, buffer.data(), response.getMessageSize() - 1);
+	std::cout << "messagesize: " << buffer.size() << "\n";
+	ssize_t send_size = write(client_socket_fd, buffer.data(), buffer.size());
+	std::cout << "send_size = " << send_size << "\n";
 	if (send_size < 0)
 	{
 		ServerManager::GetInstance().CloseConnection(client_socket_fd);
@@ -354,6 +377,7 @@ void	Connection::readCgi()
 	if (readsize < 0)
 	{
 		response.make_response_50x(500);
+		progress = TO_CLIENT;
 		return ;
 	}
 	else if (readsize == maxsize)
@@ -380,6 +404,7 @@ void	Connection::sendCgi()
 	if (writesize < 0)
 	{
 		response.make_response_50x(500);
+		progress = TO_CLIENT;
 		return ;
 	}
 	else if (writesize == maxsize)
@@ -403,6 +428,7 @@ void	Connection::readFile()
 	if (readsize < 0)
 	{
 		response.make_response_50x(500);
+		progress = TO_CLIENT;
 		return ;
 	}
 	else if (readsize == maxsize)
@@ -413,9 +439,12 @@ void	Connection::readFile()
 	else
 	{
 		response.addBody(buff, readsize);
+		std::cout << response.getBody().substr(0, readsize);
 		ServerManager::GetInstance().RemoveConnectionMap(file_fd);
-		ServerManager::GetInstance().AddConnectionMap(client_socket_fd, *this);
+		close(file_fd);
+		ServerManager::GetInstance().AddWriteEvent(client_socket_fd);
 		progress = TO_CLIENT;
+		std::cout << readsize << ": readfile done\n";
 		return ;
 	}
 }
