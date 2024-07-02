@@ -74,11 +74,11 @@ bool		ServerManager::RunServer(Config* config)
 
 					if (InitClientSocket(kq, sock_serv, change_event, sock_client, addr_client, sizeof(addr_client)) == false)
 						continue ; // 실패한 client를 제외한 나머지 이벤트에 대한 처리를 위해 continue
-					Connection con = Connection(sock_client, addr_client, config);
-					v_connection.push_back(con);
+					Connection *con = new Connection(sock_client, addr_client, config);
+					v_connection.push_back(*con);
 					std::cout << v_connection.back().GetClientSocketFd() << " is add to vec\n";
 					AddConnectionMap(sock_client, v_connection.back());
-					std::cout << connectionmap[sock_client]->GetClientSocketFd()<< "\n";
+					std::cout << "In socketfd in map: " << connectionmap[sock_client]->GetClientSocketFd()<< "\n";
 					std::cout << "client accepted\n";
 					std::cout << sock_client << "\n";
 				}
@@ -86,15 +86,13 @@ bool		ServerManager::RunServer(Config* config)
 				{
 					std::cout << "before mainprocess: events.ident= " << events[i].ident << "\n";
 					std::cout << "connectionmap size = " << connectionmap.size() << "\n";
-					for (size_t i = 0; i < v_connection.size(); ++i)
-						std::cout << v_connection[i].GetClientSocketFd();
 					if (connectionmap.find(static_cast<int>(events[i].ident)) == connectionmap.end())
 					{
 						std::cout << "cannot find map\n";
 						continue;
 					}
-					std::cout << connectionmap[events[i].ident]->GetClientSocketFd() << '\n';
-					connectionmap[events[i].ident]->mainprocess(events[i]);
+					std::cout << "socket_fd: " << connectionmap[static_cast<int>(events[i].ident)]->GetClientSocketFd() << '\n';
+					connectionmap[static_cast<int>(events[i].ident)]->mainprocess(events[i]);
 				}
 			}
 		}
@@ -233,14 +231,14 @@ bool	ServerManager::CheckEvent(int &kq, struct ::kevent *events, int &event_coun
 	return (true);
 }
 
-void	ServerManager::CloseConnection(int &sock_client)
+void	ServerManager::CloseConnection(int sock_client)
 {
 	struct ::kevent change_event;
 
 	EV_SET(&change_event, sock_client, EVFILT_READ, EV_DELETE, 0, 0, NULL);
 	kevent(kq, &change_event, 1, NULL, 0, NULL);
 	std::cout << "remove read event\n";
-	RemoveConnectionMap(sock_client); //nedd file or cgi remove from map
+	ServerManager::GetInstance().RemoveConnectionMap(sock_client); //nedd file or cgi remove from map
 	std::vector<Connection>::iterator it;
 	std::cout <<"v_connection size: "<< v_connection.size() << "\n";
 	for (it = v_connection.begin(); it != v_connection.end();)
@@ -266,12 +264,16 @@ void	ServerManager::CloseAllConnection()
 
 void		ServerManager::AddConnectionMap(int fd, Connection& connection)
 {
+	std::cout << "connectionmap size: " << connectionmap.size() << "\n";
 	connectionmap[fd] = &connection;
+	std::cout << "map added\n";
+	std::cout << "connectionmap size: " << connectionmap.size() << "\n";
 }
 
 void		ServerManager::RemoveConnectionMap(int fd)
 {
 	connectionmap.erase(fd);
+	std::cout << "map erased, map size: "<< connectionmap.size() << "\n";
 }
 
 void		ServerManager::AddWriteEvent(int client_socket_fd)

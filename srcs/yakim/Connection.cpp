@@ -285,6 +285,7 @@ void	Connection::processFile()
 	{
 		std::cout << "processfile: open failed\n";
 		response.make_response_40x(404);
+		progress = TO_CLIENT;
 		return ;
 	}
 	//request as file but is directory
@@ -292,6 +293,7 @@ void	Connection::processFile()
 	{
 		std::cout << "processfile: is dir\n";
 		response.make_response_30x(301);
+		progress = TO_CLIENT;
 		return ;
 	}
 
@@ -300,6 +302,7 @@ void	Connection::processFile()
 	{
 		std::cout << "processfile: open file failed\n";
 		response.make_response_40x(403);
+		progress = TO_CLIENT;
 		return ;
 	}
 	//파일 non-block 설정
@@ -389,7 +392,8 @@ void	Connection::readCgi()
 	{
 		response.addBody(buff, readsize);
 		ServerManager::GetInstance().CloseConnection(cgi_output_fd);
-		ServerManager::GetInstance().AddConnectionMap(client_socket_fd, *this);
+		Connection con = *this;
+		ServerManager::GetInstance().AddConnectionMap(client_socket_fd, con);
 		progress = TO_CLIENT;
 		return ;
 	}
