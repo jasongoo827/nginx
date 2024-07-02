@@ -92,7 +92,9 @@ bool		ServerManager::RunServer(Config* config)
 						continue;
 					}
 					std::cout << "socket_fd: " << connectionmap[static_cast<int>(events[i].ident)]->GetClientSocketFd() << '\n';
-					connectionmap[static_cast<int>(events[i].ident)]->mainprocess(events[i]);
+					bool ret = connectionmap[static_cast<int>(events[i].ident)]->mainprocess(events[i]);
+					if (ret == false)
+						CloseConnection(events[i].ident);
 				}
 			}
 		}

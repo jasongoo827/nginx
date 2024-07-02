@@ -44,13 +44,14 @@ Connection&	Connection::operator=(const Connection& ref)
 	return (*this);
 }
 
-void	Connection::mainprocess(struct kevent& event)
+bool	Connection::mainprocess(struct kevent& event)
 {
 	std::cout << "progress: " << progress << " event.filter: " << event.filter << "\n";
 	std::cout << "mainprocess for fd: " << client_socket_fd << "\n";
 	if (progress == FROM_CLIENT && event.filter == EVFILT_READ)
 	{
-		readClient();
+		if (readClient() == false)
+			return (false);
 		std::cout << "read done";
 		makeResponse();
 		if (progress == TO_CLIENT)
@@ -59,11 +60,18 @@ void	Connection::mainprocess(struct kevent& event)
 			response.combineMessage();
 			ServerManager::GetInstance().AddWriteEvent(client_socket_fd);
 		}
+		return (true);
 	}
 	else if (progress == TO_CGI && event.filter == EVFILT_WRITE)
+	{
 		sendCgi();
+		return (true);
+	}
 	else if (progress == FROM_CGI && event.filter == EVFILT_READ)
+	{
 		readCgi();
+		return (true);
+	}
 	else if (progress == FROM_FILE && event.filter == EVFILT_READ)
 	{
 		readFile();
@@ -73,22 +81,28 @@ void	Connection::mainprocess(struct kevent& event)
 			response.combineMessage();
 			ServerManager::GetInstance().AddWriteEvent(client_socket_fd);
 		}
+		return (true);
 	}
 	else if (progress == TO_CLIENT && event.filter == EVFILT_WRITE)
 	{
 		std::cout << "sendMessage\n";
 		sendMessage();
+		return (false);
 	}
+	else
+		return (false);
 }
 
-void	Connection::readClient()
+bool	Connection::readClient()
 {
 	char				buffer[1000000];
 	std::cout << client_socket_fd << "\n";
 	ssize_t				nread = read(client_socket_fd, buffer, sizeof(buffer));
 
 	if (nread <= 0)
-		ServerManager::GetInstance().CloseConnection(client_socket_fd);
+	{
+		return (false);
+	}
 	else
 	{
 		std::cout << "\n\n원본 메시지\n" << std::string(buffer, nread) << "\n\n\n";
@@ -104,6 +118,7 @@ void	Connection::readClient()
 			std::cout << it->first << ": \'" << it->second << "\'\n";
 		std::cout << '\'' << request.GetBody() << "\'\n";
 		std::cout << "status = " << request.GetStatus() << '\n';
+		return (true);
 	}
 }
 
@@ -323,13 +338,13 @@ void	Connection::sendMessage()
 	std::cout << "send_size = " << send_size << "\n";
 	if (send_size < 0)
 	{
-		ServerManager::GetInstance().CloseConnection(client_socket_fd);
+		// ServerManager::GetInstance().CloseConnection(client_socket_fd);
 		return ;
 	}
 	else if (send_size == response.getMessageSize())
 	{
 		//response 완료
-		ServerManager::GetInstance().CloseConnection(client_socket_fd);
+		// ServerManager::GetInstance().CloseConnection(client_socket_fd);
 		return ;
 	}
 	else
@@ -391,7 +406,7 @@ void	Connection::readCgi()
 	else
 	{
 		response.addBody(buff, readsize);
-		ServerManager::GetInstance().CloseConnection(cgi_output_fd);
+		// ServerManager::GetInstance().CloseConnection(cgi_output_fd);
 		Connection con = *this;
 		ServerManager::GetInstance().AddConnectionMap(client_socket_fd, con);
 		progress = TO_CLIENT;
@@ -418,7 +433,7 @@ void	Connection::sendCgi()
 	}
 	else
 	{
-		ServerManager::GetInstance().CloseConnection(cgi_input_fd);
+		// ServerManager::GetInstance().RemoveWriteEvent(cgi_input_fd);
 		return ;
 	}
 }
