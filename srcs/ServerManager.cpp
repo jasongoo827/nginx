@@ -74,7 +74,7 @@ bool		ServerManager::RunServer(Config* config)
 
 					if (InitClientSocket(kq, sock_serv, change_event, sock_client, addr_client, sizeof(addr_client)) == false)
 						continue ; // 실패한 client를 제외한 나머지 이벤트에 대한 처리를 위해 continue
-					Connection con = Connection(sock_client, addr_client, config);
+					Connection con(sock_client, addr_client, config);
 					v_connection.push_back(con);
 					std::cout << v_connection.back().GetClientSocketFd() << " is add to vec\n";
 					AddConnectionMap(sock_client, v_connection.back());
@@ -86,8 +86,10 @@ bool		ServerManager::RunServer(Config* config)
 				{
 					std::cout << "before mainprocess: events.ident= " << events[i].ident << "\n";
 					std::cout << "connectionmap size = " << connectionmap.size() << "\n";
-					for (size_t i = 0; i < v_connection.size(); ++i)
-						std::cout << v_connection[i].GetClientSocketFd();
+					// for (std::map<int, Connection*>::iterator it = connectionmap.begin(); it != connectionmap.end(); ++it)
+					// {
+					// 	std::cout << it->first << it->second->GetClientSocketFd() << '\n';
+					// }
 					if (connectionmap.find(static_cast<int>(events[i].ident)) == connectionmap.end())
 					{
 						std::cout << "cannot find map\n";
@@ -267,6 +269,7 @@ void	ServerManager::CloseAllConnection()
 void		ServerManager::AddConnectionMap(int fd, Connection& connection)
 {
 	connectionmap[fd] = &connection;
+	// connectionmap.insert(std::make_pair(fd, &connection));
 }
 
 void		ServerManager::RemoveConnectionMap(int fd)
