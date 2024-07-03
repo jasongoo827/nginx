@@ -47,23 +47,30 @@ std::map<int, std::string>	Response::reasonmap;
 
 //OCCF
 Response::Response()
+: method(GET), status(200), body(""), message(""), message_size(0)
 {
-
+	this->header.clear();
 }
 
 Response::Response(const Response& ref)
+: method(ref.method), status(ref.status), body(ref.body), message(ref.message), message_size(ref.message_size)
 {
-	(void)ref;
+	header = ref.header;
 }
 
 Response::~Response()
 {
-
+	header.clear();
 }
 
 Response& Response::operator=(const Response& ref)
 {
-	(void)ref;
+	this->method = ref.method;
+	this->status = ref.status;
+	this->header = ref.header;
+	this->body = ref.body;
+	this->message = ref.message;
+	this->message_size = ref.message_size;
 	return (*this);
 }
 
@@ -128,6 +135,7 @@ void	Response::addHeader(std::string key, std::string value)
 
 void	Response::addBasicHeader()
 {
+	header.clear();
 	header["Server"] = "nginx/0.1";//
 	header["Date"] = utils::getTime();
 	header["Connection"] = "close";
