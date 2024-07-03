@@ -127,7 +127,7 @@ void	Response::cutMessage(ssize_t size)
 {
 	if (size == 0)
 		return ;
-	message.erase(message.begin(), message.begin() + size - 1);
+	message.erase(message.begin(), message.begin() + size);
 }
 
 void	Response::addHeader(std::string key, std::string value)
