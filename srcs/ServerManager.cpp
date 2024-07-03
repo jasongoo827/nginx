@@ -28,13 +28,6 @@ ServerManager& ServerManager::operator=(const ServerManager& ref)
 	return (*this);
 }
 
-ServerManager ServerManager::servermanager = ServerManager();
-
-ServerManager&	ServerManager::GetInstance()
-{
-	return (servermanager);
-}
-
 bool		ServerManager::RunServer(Config* config)
 {
 	struct kevent				change_event;
@@ -72,10 +65,12 @@ bool		ServerManager::RunServer(Config* config)
 					int 				sock_client;
 					struct sockaddr_in	addr_client;
 
+					std::cout << "sock_serv: " << sock_serv << "\n";
 					if (InitClientSocket(kq, sock_serv, change_event, sock_client, addr_client, sizeof(addr_client)) == false)
 						continue ; // 실패한 client를 제외한 나머지 이벤트에 대한 처리를 위해 continue
 					Connection *con = new Connection(sock_client, addr_client, config);
 					v_connection.push_back(*con);
+					delete con;
 					std::cout << v_connection.back().GetClientSocketFd() << " is add to vec\n";
 					AddConnectionMap(sock_client, v_connection.back());
 					std::cout << "In socketfd in map: " << connectionmap[sock_client]->GetClientSocketFd()<< "\n";
@@ -84,6 +79,7 @@ bool		ServerManager::RunServer(Config* config)
 				}
 				else
 				{
+					managerstatus();
 					std::cout << "before mainprocess: events.ident= " << events[i].ident << "\n";
 					std::cout << "connectionmap size = " << connectionmap.size() << "\n";
 					if (connectionmap.find(static_cast<int>(events[i].ident)) == connectionmap.end())
@@ -91,12 +87,25 @@ bool		ServerManager::RunServer(Config* config)
 						std::cout << "cannot find map\n";
 						continue;
 					}
+					Connection* connection = connectionmap[static_cast<int>(events[i].ident)];
 					std::cout << "socket_fd: " << connectionmap[static_cast<int>(events[i].ident)]->GetClientSocketFd() << '\n';
-					bool ret = connectionmap[static_cast<int>(events[i].ident)]->mainprocess(events[i]);
+					bool ret = connection->mainprocess(events[i]);
 					if (ret == false)
-						CloseConnection(events[i].ident);
+					{
+						std::cout << "****connection end****\n";
+						CloseConnection(static_cast<int>(events[i].ident));
+						break ;
+					}
+					if (connection->GetProgress() == FROM_FILE)
+					{
+						AddReadEvent(connection->GetFileFd());
+						AddConnectionMap(connection->GetFileFd(), *connection);
+					}
+					else if (connectionmap[static_cast<int>(events[i].ident)]->GetProgress() == TO_CLIENT)
+						AddWriteEvent(connection->GetClientSocketFd());
 				}
 			}
+			managerstatus();
 		}
 		CloseAllConnection();
 	}
@@ -237,18 +246,26 @@ void	ServerManager::CloseConnection(int sock_client)
 {
 	struct ::kevent change_event;
 
+	std::cout << "Close connection for fd: " << sock_client << "\n";
 	EV_SET(&change_event, sock_client, EVFILT_READ, EV_DELETE, 0, 0, NULL);
 	kevent(kq, &change_event, 1, NULL, 0, NULL);
 	std::cout << "remove read event\n";
-	ServerManager::GetInstance().RemoveConnectionMap(sock_client); //nedd file or cgi remove from map
 	std::vector<Connection>::iterator it;
 	std::cout <<"v_connection size: "<< v_connection.size() << "\n";
-	for (it = v_connection.begin(); it != v_connection.end();)
+
+	for (size_t i = 0; i < v_connection.size(); i++)
 	{
-		if (it->GetClientSocketFd() == sock_client)
-			it = v_connection.erase(it);
-		else
-			++it;
+		if (v_connection[i].GetClientSocketFd() == sock_client)
+		{
+			RemoveConnectionMap(v_connection[i].GetClientSocketFd());
+			if (v_connection[i].GetFileFd())
+				RemoveConnectionMap(v_connection[i].GetFileFd());
+			// if (it->GetCgiFd())
+			// {
+			// 	RemoveConnectionMap(it->GetCgiFd);
+			// }
+			v_connection.erase(v_connection.begin() + i);
+		}
 	}
 	close(sock_client);
 	std::cout << "close connection " << sock_client << "\n";
@@ -315,4 +332,16 @@ void		ServerManager::AddReadEvent(int fd)
 		std::cout << "fail to remove writeevent\n";
 		std::cout << errno << "\n";
 	}
+}
+
+void	ServerManager::managerstatus()
+{
+	std::cout << "------------------------------------------\n";
+	std::cout << "vconnection size = " << v_connection.size() << "\n";
+	for (size_t i = 0; i < v_connection.size(); i++)
+		std::cout << "connection" << i << ": " << "clientsocket: " << v_connection[i].GetClientSocketFd() << "\n";
+	std::cout << "connectionmap size = " << connectionmap.size() << "\n";
+	for (std::map<int, Connection*>::iterator it = connectionmap.begin(); it != connectionmap.end(); it++)
+		std::cout << "connectionmap: "<< it->first << " clientsocket: " << it->second->GetClientSocketFd() <<  "\n";
+	std::cout << "------------------------------------------\n";
 }

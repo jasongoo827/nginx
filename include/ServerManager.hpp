@@ -18,11 +18,8 @@ class ServerManager
 {
 public:
 	ServerManager();
-	ServerManager(const ServerManager& ref);
 	~ServerManager();
-	ServerManager& operator=(const ServerManager& ref);
 
-	static ServerManager&	GetInstance();
 	bool					RunServer(Config* config);
 	bool					InitServerAddress(sockaddr_in &addr_serv, int port);
 	bool					InitServerSocket(int &sock_serv, sockaddr_in &addr_serv);
@@ -37,10 +34,13 @@ public:
 	void					AddWriteEvent(int client_socket_fd);
 	void					RemoveWriteEvent(int client_socket_fd);
 	void					AddReadEvent(int fd);
+	void					managerstatus();
+
 
 
 private:
-	static ServerManager 					servermanager;
+	ServerManager(const ServerManager& ref);
+	ServerManager& operator=(const ServerManager& ref);
 	std::map<int, Connection*>				connectionmap;
 	std::vector<Connection>					v_connection;
 	int										kq;

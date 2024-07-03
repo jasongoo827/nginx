@@ -31,5 +31,6 @@ int main(int argc, char *argv[], char *envp[])
 		// config.PrintConfigInfo();
 	}
 	std::cout << "config done" << std::endl;
-	ServerManager::GetInstance().RunServer(&config);
+	ServerManager	servermanager;
+	servermanager.RunServer(&config);
 }
