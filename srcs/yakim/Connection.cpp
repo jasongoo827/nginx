@@ -20,6 +20,7 @@ Connection::Connection(int clinet_socket_fd, sockaddr_in client_socket_addr, Con
 	this->config_ptr = config_ptr;
 	this->progress = FROM_CLIENT;
 	this->writeevent = 0;
+	this->file_fd = 0;
 }
 
 Connection::Connection(const Connection& ref)
@@ -30,6 +31,7 @@ Connection::Connection(const Connection& ref)
 	this->config_ptr = ref.config_ptr;
 	this->progress = ref.progress;
 	this->writeevent = 0;
+	this->file_fd = ref.file_fd;
 }
 
 Connection::~Connection()
@@ -44,6 +46,7 @@ Connection&	Connection::operator=(const Connection& ref)
 	this->config_ptr = ref.config_ptr;
 	this->progress = ref.progress;
 	this->writeevent = 0;
+	this->file_fd = ref.file_fd;
 	return (*this);
 }
 
@@ -471,7 +474,7 @@ void	Connection::readFile()
 		response.addBody(buff, readsize);
 		std::cout << response.getBody().substr(0, readsize);
 		// ServerManager::GetInstance().RemoveConnectionMap(file_fd);
-		close(file_fd);
+
 		// ServerManager::GetInstance().AddWriteEvent(client_socket_fd);
 		progress = TO_CLIENT;
 		std::cout << readsize << ": readfile done\n";

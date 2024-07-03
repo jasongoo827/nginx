@@ -62,6 +62,10 @@ bool		ServerManager::RunServer(Config* config)
 			std::cout << "event occured " << event_count << "\n";
 			for (int i = 0; i < event_count; ++i)
 			{
+				if (events[i].filter == EVFILT_WRITE)
+					std::cout << events[i].ident << ", write, " << events[i].flags << "\n\n";
+				else if (events[i].filter == EVFILT_READ)
+					std::cout << events[i].ident << ", read, " << events[i].flags << "\n\n";
 				if (events[i].filter == EVFILT_READ && events[i].ident == static_cast<size_t>(sock_serv))
 				{
 					int 				sock_client;
@@ -72,6 +76,8 @@ bool		ServerManager::RunServer(Config* config)
 						continue ; // 실패한 client를 제외한 나머지 이벤트에 대한 처리를 위해 continue
 					Connection *con = new Connection(sock_client, addr_client, config);
 					v_connection.push_back(*con);
+					std::cout << "\n----after push_back----\n";
+					managerstatus();
 					delete con;
 					std::cout << v_connection.back().GetClientSocketFd() << " is add to vec\n";
 					AddConnectionMap(sock_client, v_connection.back());
@@ -81,7 +87,9 @@ bool		ServerManager::RunServer(Config* config)
 				}
 				else
 				{
+					std::cout << "\n----client event----\n";
 					managerstatus();
+
 					std::cout << "before mainprocess: events.ident= " << events[i].ident << "\n";
 					std::cout << "connectionmap size = " << connectionmap.size() << "\n";
 					if (connectionmap.find(static_cast<int>(events[i].ident)) == connectionmap.end())
@@ -104,7 +112,11 @@ bool		ServerManager::RunServer(Config* config)
 						AddConnectionMap(connection->GetFileFd(), *connection);
 					}
 					else if (connectionmap[static_cast<int>(events[i].ident)]->GetProgress() == TO_CLIENT)
+					{
+						if (connectionmap[static_cast<int>(events[i].ident)]->GetFileFd())
+							RemoveReadEvent(connectionmap[static_cast<int>(events[i].ident)]->GetFileFd());
 						AddWriteEvent(connection->GetClientSocketFd());
+					}
 				}
 			}
 			managerstatus();
@@ -188,7 +200,7 @@ bool	ServerManager::InitClientSocket(int &kq, int &sock_serv, struct ::kevent &c
 	}
 	/* 소켓을 재활용 가능하도록 설정 */
 	int enable = 1;
-	if (setsockopt(sock_serv, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
+	if (setsockopt(sock_client, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
 	{
 		std::cerr << "setsockopt fail\n";
 		close(sock_client);
@@ -207,6 +219,8 @@ bool	ServerManager::InitClientSocket(int &kq, int &sock_serv, struct ::kevent &c
 		close(sock_client);
 		return (false);
 	}
+	std::cout << "\n----after init client_socket----\n";
+	managerstatus();
 	return (true);
 }
 
@@ -260,8 +274,12 @@ void	ServerManager::CloseConnection(int sock_client)
 		if (v_connection[i].GetClientSocketFd() == sock_client)
 		{
 			RemoveConnectionMap(v_connection[i].GetClientSocketFd());
+			std::cout << "filefd connected: " << i << v_connection[i].GetFileFd() << "\n";
 			if (v_connection[i].GetFileFd())
+			{
 				RemoveConnectionMap(v_connection[i].GetFileFd());
+				close(v_connection[i].GetFileFd());
+			}
 			// if (it->GetCgiFd())
 			// {
 			// 	RemoveConnectionMap(it->GetCgiFd);
@@ -293,8 +311,8 @@ void		ServerManager::AddConnectionMap(int fd, Connection& connection)
 
 void		ServerManager::RemoveConnectionMap(int fd)
 {
-	connectionmap.erase(fd);
-	std::cout << "map erased, map size: "<< connectionmap.size() << "\n";
+	size_t erasesize = connectionmap.erase(fd);
+	std::cout << "map erased "<< erasesize << "times for fd" << fd << ", map size: "<< connectionmap.size() << "\n";
 }
 
 void		ServerManager::AddWriteEvent(int client_socket_fd)
@@ -314,7 +332,7 @@ void		ServerManager::RemoveWriteEvent(int client_socket_fd)
 {
 	struct kevent change_event;
 	EV_SET(&change_event, client_socket_fd, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
-	std::cout << "kq: " << kq << "\n";
+	std::cout << "try to remove event: fd: " << client_socket_fd << "\n";
 	int ret = kevent(kq, &change_event, 1, NULL, 0, NULL);
 	if (ret < 0)
 	{
@@ -331,7 +349,20 @@ void		ServerManager::AddReadEvent(int fd)
 	int ret = kevent(kq, &change_event, 1, NULL, 0, NULL);
 	if (ret < 0)
 	{
-		std::cout << "fail to remove writeevent\n";
+		std::cout << "fail to add read event\n";
+		std::cout << errno << "\n";
+	}
+}
+
+void		ServerManager::RemoveReadEvent(int fd)
+{
+	struct kevent change_event;
+	EV_SET(&change_event, fd, EVFILT_READ, EV_DELETE, 0, 0, NULL);
+	std::cout << "kq: " << kq << "\n";
+	int ret = kevent(kq, &change_event, 1, NULL, 0, NULL);
+	if (ret < 0)
+	{
+		std::cout << "fail to remove read event\n";
 		std::cout << errno << "\n";
 	}
 }
