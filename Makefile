@@ -8,12 +8,11 @@ CFLAGS = -Wall -Werror -Wextra -Iinclude -MMD -MP -std=c++98 -g3
 
 RM = rm -rf
 
-CONFIG = srcs/Config
-
 SRCS = $(wildcard srcs/Config/*.cpp) \
 		$(wildcard srcs/*.cpp) \
 		$(wildcard srcs/Request/*.cpp) \
-		$(wildcard srcs/yakim/*.cpp)
+		$(wildcard srcs/yakim/*.cpp) \
+		$(wildcard srcs/thread/*.cpp)
 
 
 OBJS = $(SRCS:%.cpp=%.o)
