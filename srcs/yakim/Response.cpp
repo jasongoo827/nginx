@@ -1,6 +1,8 @@
 #include "Response.hpp"
 #include "Utils.hpp"
 #include <algorithm>
+#include <dirent.h>
+#include <sys/stat.h>
 
 std::map<int, std::string>	Response::reasonmap;
 // Response::reasonmap[100] = "Continue";
@@ -174,4 +176,36 @@ const std::string	Response::getReason(int status)
 	if (reasonmap.find(status) != reasonmap.end())
 		return (reasonmap[status]);
 	return ("");
+}
+
+void Response::AutoIndex(const std::string& path)
+{
+	DIR* 				dirptr;
+	struct dirent		*dp;
+	struct stat			stat_;
+	std::stringstream	str;
+	std::string			tmp;
+
+	std::cout << "path: " << path << "\n";
+	dirptr = opendir(path.c_str());
+	str << "<html>\r\n<head><title>Index of " << path.c_str() << "</title></head>\r\n";
+	str << "<body>\r\n<h1>Index of " << path.c_str() << "</h1><hr>\r\n<pre>";
+	while ((dp = readdir(dirptr)) != NULL)
+	{
+		if (strcmp(dp->d_name, ".") == 0)
+			continue ;
+		stat(dp->d_name, &stat_);
+		tmp = "";
+		str << "<a href=\"" << dp->d_name << "\">" << dp->d_name << std::left << "</a>";
+		if (S_ISREG(stat_.st_mode))
+		{
+			std::string str_tmp = std::ctime(&stat_.st_mtime);
+			str_tmp.pop_back();
+			str << str_tmp << stat_.st_size;
+		}
+		str << "\r\n";
+	}
+	str << "</pre><hr></body>\r\n</html>\r\n";
+	body = str.str();
+	closedir(dirptr);
 }

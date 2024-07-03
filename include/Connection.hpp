@@ -19,8 +19,8 @@ public:
 	~Connection();
 	Connection& operator=(const Connection& ref);
 
-	bool						mainprocess(struct kevent& event);
-	bool						readClient();
+	void						mainprocess(struct kevent& event);
+	void						readClient();
 	void						makeResponse();
 	void						parserequest();
 	void						processDir();

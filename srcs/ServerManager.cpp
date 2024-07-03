@@ -98,8 +98,8 @@ bool		ServerManager::RunServer(Config* config)
 					}
 					Connection* connection = connectionmap[static_cast<int>(events[i].ident)];
 					std::cout << "socket_fd: " << connectionmap[static_cast<int>(events[i].ident)]->GetClientSocketFd() << '\n';
-					bool ret = connection->mainprocess(events[i]);
-					if (ret == false)
+					connection->mainprocess(events[i]);
+					if (connection->GetProgress() == END_CONNECTION)
 					{
 						std::cout << "****connection end****\n";
 						CloseConnection(static_cast<int>(events[i].ident));
