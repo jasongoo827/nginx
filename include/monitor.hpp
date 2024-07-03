@@ -16,9 +16,9 @@ public:
 
 	void 		ExecuteMonitor(std::map<int, Connection*>& connectionmap);
 
-private:
-	pthread_t thread;
+	pthread_t 					thread;
 	std::map<int, Connection*>* mapptr;
+	pthread_mutex_t 			cout_mutex;
 };
 
 void		*PrintMap(void *arg);
