@@ -75,11 +75,10 @@ bool		ServerManager::RunServer(Config* config)
 					if (InitClientSocket(kq, sock_serv, change_event, sock_client, addr_client, sizeof(addr_client)) == false)
 						continue ; // 실패한 client를 제외한 나머지 이벤트에 대한 처리를 위해 continue
 					Connection *con = new Connection(sock_client, addr_client, config);
-					v_connection.push_back(*con);
+					v_connection.push_back(con);
 					std::cout << "\n----after push_back----\n";
 					managerstatus();
-					delete con;
-					std::cout << v_connection.back().GetClientSocketFd() << " is add to vec\n";
+					std::cout << v_connection.back()->GetClientSocketFd() << " is add to vec\n";
 					AddConnectionMap(sock_client, v_connection.back());
 					std::cout << "In socketfd in map: " << connectionmap[sock_client]->GetClientSocketFd()<< "\n";
 					std::cout << "client accepted\n";
@@ -109,7 +108,7 @@ bool		ServerManager::RunServer(Config* config)
 					if (connection->GetProgress() == FROM_FILE)
 					{
 						AddReadEvent(connection->GetFileFd());
-						AddConnectionMap(connection->GetFileFd(), *connection);
+						AddConnectionMap(connection->GetFileFd(), connection);
 					}
 					else if (connectionmap[static_cast<int>(events[i].ident)]->GetProgress() == TO_CLIENT)
 					{
@@ -271,19 +270,20 @@ void	ServerManager::CloseConnection(int sock_client)
 
 	for (size_t i = 0; i < v_connection.size(); i++)
 	{
-		if (v_connection[i].GetClientSocketFd() == sock_client)
+		if (v_connection[i]->GetClientSocketFd() == sock_client)
 		{
-			RemoveConnectionMap(v_connection[i].GetClientSocketFd());
-			std::cout << "filefd connected: " << i << v_connection[i].GetFileFd() << "\n";
-			if (v_connection[i].GetFileFd())
+			RemoveConnectionMap(v_connection[i]->GetClientSocketFd());
+			std::cout << "filefd connected: " << i << v_connection[i]->GetFileFd() << "\n";
+			if (v_connection[i]->GetFileFd())
 			{
-				RemoveConnectionMap(v_connection[i].GetFileFd());
-				close(v_connection[i].GetFileFd());
+				RemoveConnectionMap(v_connection[i]->GetFileFd());
+				close(v_connection[i]->GetFileFd());
 			}
 			// if (it->GetCgiFd())
 			// {
 			// 	RemoveConnectionMap(it->GetCgiFd);
 			// }
+			delete v_connection[i];
 			v_connection.erase(v_connection.begin() + i);
 		}
 	}
@@ -294,17 +294,17 @@ void	ServerManager::CloseConnection(int sock_client)
 void	ServerManager::CloseAllConnection()
 {
 	for (size_t i = 0; i < v_connection.size(); ++i)
-		close(v_connection[i].GetClientSocketFd());
+		close(v_connection[i]->GetClientSocketFd());
 	close(sock_serv);
 	close(kq);
 	v_connection.clear();
 	connectionmap.clear();
 }
 
-void		ServerManager::AddConnectionMap(int fd, Connection& connection)
+void		ServerManager::AddConnectionMap(int fd, Connection* connection)
 {
 	std::cout << "connectionmap size: " << connectionmap.size() << "\n";
-	connectionmap[fd] = &connection;
+	connectionmap[fd] = connection;
 	std::cout << "map added\n";
 	std::cout << "connectionmap size: " << connectionmap.size() << "\n";
 }
@@ -372,7 +372,7 @@ void	ServerManager::managerstatus()
 	std::cout << "------------------------------------------\n";
 	std::cout << "vconnection size = " << v_connection.size() << "\n";
 	for (size_t i = 0; i < v_connection.size(); i++)
-		std::cout << "connection" << i << ": " << "clientsocket: " << v_connection[i].GetClientSocketFd() << "\n";
+		std::cout << "connection" << i << ": " << "clientsocket: " << v_connection[i]->GetClientSocketFd() << "\n";
 	std::cout << "connectionmap size = " << connectionmap.size() << "\n";
 	for (std::map<int, Connection*>::iterator it = connectionmap.begin(); it != connectionmap.end(); it++)
 		std::cout << "connectionmap: "<< it->first << " clientsocket: " << it->second->GetClientSocketFd() <<  "\n";

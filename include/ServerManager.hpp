@@ -29,7 +29,7 @@ public:
 	bool					CheckEvent(int &kq, struct ::kevent *events, int &event_count, int &sock_serv);
 	void					CloseAllConnection();
 	void					CloseConnection(int sock_client);
-	void					AddConnectionMap(int, Connection&);
+	void					AddConnectionMap(int, Connection*);
 	void					RemoveConnectionMap(int fd);
 	void					AddWriteEvent(int client_socket_fd);
 	void					RemoveWriteEvent(int client_socket_fd);
@@ -44,7 +44,7 @@ private:
 	ServerManager(const ServerManager& ref);
 	ServerManager& operator=(const ServerManager& ref);
 	std::map<int, Connection*>				connectionmap;
-	std::vector<Connection>					v_connection;
+	std::vector<Connection*>				v_connection;
 	int										kq;
 	int										event_count;
 	int										sock_serv;
