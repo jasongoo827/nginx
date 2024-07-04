@@ -20,7 +20,7 @@ Connection::Connection(int clinet_socket_fd, sockaddr_in client_socket_addr, Con
 	this->config_ptr = config_ptr;
 	this->progress = FROM_CLIENT;
 	this->file_fd = 0;
-	time(&timeval);
+	std::time(&timeval);
 }
 
 Connection::Connection(const Connection& ref)
@@ -46,6 +46,7 @@ Connection&	Connection::operator=(const Connection& ref)
 	this->config_ptr = ref.config_ptr;
 	this->progress = ref.progress;
 	this->file_fd = ref.file_fd;
+	this->timeval = ref.timeval;
 	return (*this);
 }
 
@@ -62,6 +63,7 @@ void	Connection::MainProcess(struct kevent& event)
 			return ;
 		std::cout << "read done";
 		MakeResponse();
+		response.CombineMessage();
 		return ;
 	}
 	else if (progress == TO_CGI && event.filter == EVFILT_WRITE)
@@ -77,12 +79,12 @@ void	Connection::MainProcess(struct kevent& event)
 	else if (progress == FROM_FILE && event.filter == EVFILT_READ)
 	{
 		ReadFile();
+		response.CombineMessage();
 		return ;
 	}
 	else if (progress == TO_CLIENT && event.filter == EVFILT_WRITE)
 	{
 		// 여기서 쿠키 관련 작업?
-		response.CombineMessage();
 		std::cout << "SendMessage\n";
 		SendMessage();
 		return ;
@@ -383,6 +385,8 @@ void	Connection::ProcessCgi()
 	//cgi 실행
 	if (cgi.CgiExec().ok())
 	{
+		pipein = cgi.GetPipeIn();
+		pipeout = cgi.GetPipeOut();
 		progress = TO_CGI;
 	}
 	else
@@ -397,7 +401,7 @@ void	Connection::ReadCgi()
 	std::string buff;
 	ssize_t	maxsize = 65535;
 	buff.resize(maxsize);
-	ssize_t readsize = read(cgi_output_fd, &buff[0], maxsize);
+	ssize_t readsize = read(pipein, &buff[0], maxsize);
 	if (readsize < 0)
 	{
 		response.make_response_50x(500);
@@ -422,7 +426,7 @@ void	Connection::SendCgi()
 	std::string buff;
 	ssize_t	maxsize = 65535;
 	buff.resize(maxsize);
-	ssize_t writesize = write(cgi_input_fd, request.GetBody().data(), maxsize);
+	ssize_t writesize = write(pipeout, request.GetBody().data(), maxsize);
 	if (writesize < 0)
 	{
 		response.make_response_50x(500);
@@ -480,4 +484,13 @@ enum CurrentProgress		Connection::GetProgress()
 int		Connection::GetFileFd()
 {
 	return file_fd;
+}
+int		Connection::GetPipein()
+{
+	return pipein;
+}
+
+int		Connection::GetPipeout()
+{
+	return pipeout;
 }
