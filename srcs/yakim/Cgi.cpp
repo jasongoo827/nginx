@@ -28,14 +28,14 @@ Cgi& Cgi::operator=(const Cgi& ref)
 }
 
 
-int*	Cgi::GetPipeIn()
+int	Cgi::GetPipeIn()
 {
-	return (pipe_in);
+	return (pipe_in[1]);
 }
 
-int*	Cgi::GetPipeOut()
+int	Cgi::GetPipeOut()
 {
-	return (pipe_out);
+	return (pipe_out[0]);
 }
 
 

@@ -118,9 +118,8 @@ bool		ServerManager::RunServer(Config* config)
 					}
 					// else if (connection->GetProgress() == TO_CGI)
 					// {
-					// 	if (connection->GetCgiInputFd())
-					// 	AddReadEvent(connection->GetCgiInputFd());
-					// 	AddWriteEvent(connection->GetCgiOutputFd());
+					// 	AddReadEvent(connection->GetPipein());
+					// 	AddWriteEvent(connection->GetPipeout());
 					// }
 				}
 			}

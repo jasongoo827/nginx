@@ -13,8 +13,8 @@ public:
 	~Cgi();
 	Cgi& operator=(const Cgi& ref);
 
-	int*	GetPipeIn();
-	int*	GetPipeOut();
+	int	GetPipeIn();
+	int	GetPipeOut();
 
 	void	setEnv(Request& req, const Server& ser);
 	Status	setPipe();

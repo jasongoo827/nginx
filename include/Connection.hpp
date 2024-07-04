@@ -9,6 +9,7 @@
 # include "Cgi.hpp"
 # include "Enum.hpp"
 # include <sys/event.h>
+# include <ctime>
 
 
 class Connection
@@ -32,6 +33,8 @@ public:
 
 
 	int							GetClientSocketFd();
+	int							GetPipein();
+	int							GetPipeout();
 	enum CurrentProgress		GetProgress();
 	int							GetFileFd();
 
@@ -47,8 +50,8 @@ private:
 	Server const *			server_ptr;
 	Locate const *			locate_ptr;
 	int						file_fd;
-	int						cgi_input_fd;
-	int						cgi_output_fd;
+	int						pipein;
+	int						pipeout;
 	time_t					timeval;
 };
 

@@ -81,8 +81,10 @@ section button:hover {
 		</section>
 		<section>
 			<h2>UPLOAD FILE</h2>
-				<input type="file" name="fileToUpload" id="fileToUpload">
-				<button type="submit">UPLOAD BUTTON</button>
+            <form action="/cgi-bin/upload.php" method="post" enctype="multipart/form-data">
+                <input type="file" name="fileToUpload" id="fileToUpload">
+                <button type="submit">UPLOAD BUTTON</button>
+            </form>
 		</section>	
 
 		<section>

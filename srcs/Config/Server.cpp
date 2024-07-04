@@ -1,7 +1,6 @@
 #include "Server.hpp"
 #include "Status.hpp"
 #include "Locate.hpp"
-#include <string.h>
 
 Server::Server(): dup_mask(0) {}
 
