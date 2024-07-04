@@ -11,9 +11,7 @@ RM = rm -rf
 SRCS = $(wildcard srcs/Config/*.cpp) \
 		$(wildcard srcs/*.cpp) \
 		$(wildcard srcs/Request/*.cpp) \
-		$(wildcard srcs/yakim/*.cpp) \
-		$(wildcard srcs/thread/*.cpp)
-
+		$(wildcard srcs/yakim/*.cpp)
 
 OBJS = $(SRCS:%.cpp=%.o)
 

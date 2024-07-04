@@ -95,6 +95,7 @@ void	Connection::mainprocess(struct kevent& event)
 	}
 	else if (progress == TO_CLIENT && event.filter == EVFILT_WRITE)
 	{
+		// session 확인 후 response 헤더에 추가
 		std::cout << "sendMessage\n";
 		sendMessage();
 		return ;
