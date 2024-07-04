@@ -19,17 +19,16 @@ public:
 	~Connection();
 	Connection& operator=(const Connection& ref);
 
-	void						mainprocess(struct kevent& event);
-	void						readClient();
-	void						makeResponse();
-	void						parserequest();
-	void						processDir();
-	void						processFile();
-	void						processCgi();
-	void						readFile();
-	void						readCgi();
-	void						sendCgi();
-	void						sendMessage();
+	void						MainProcess(struct kevent& event);
+	void						ReadClient();
+	void						MakeResponse();
+	void						ProcessDir();
+	void						ProcessFile();
+	void						ProcessCgi();
+	void						ReadFile();
+	void						ReadCgi();
+	void						SendCgi();
+	void						SendMessage();
 
 
 	int							GetClientSocketFd();
@@ -50,7 +49,6 @@ private:
 	int						file_fd;
 	int						cgi_input_fd;
 	int						cgi_output_fd;
-	int						writeevent;
 	time_t					timeval;
 };
 

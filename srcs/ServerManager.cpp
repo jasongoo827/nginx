@@ -89,7 +89,7 @@ bool		ServerManager::RunServer(Config* config)
 					std::cout << "\n----client event----\n";
 					managerstatus();
 
-					std::cout << "before mainprocess: events.ident= " << events[i].ident << "\n";
+					std::cout << "before MainProcess: events.ident= " << events[i].ident << "\n";
 					std::cout << "connectionmap size = " << connectionmap.size() << "\n";
 					if (connectionmap.find(static_cast<int>(events[i].ident)) == connectionmap.end())
 					{
@@ -98,11 +98,11 @@ bool		ServerManager::RunServer(Config* config)
 					}
 					Connection* connection = connectionmap[static_cast<int>(events[i].ident)];
 					std::cout << "socket_fd: " << connectionmap[static_cast<int>(events[i].ident)]->GetClientSocketFd() << '\n';
-					connection->mainprocess(events[i]);
+					connection->MainProcess(events[i]);
 					if (connection->GetProgress() == END_CONNECTION)
 					{
 						std::cout << "****connection end****\n";
-						CloseConnection(static_cast<int>(events[i].ident));
+						CloseConnection(connection->GetClientSocketFd());
 						break ;
 					}
 					if (connection->GetProgress() == FROM_FILE)
@@ -110,12 +110,18 @@ bool		ServerManager::RunServer(Config* config)
 						AddReadEvent(connection->GetFileFd());
 						AddConnectionMap(connection->GetFileFd(), connection);
 					}
-					else if (connectionmap[static_cast<int>(events[i].ident)]->GetProgress() == TO_CLIENT)
+					else if (connection->GetProgress() == TO_CLIENT)
 					{
-						if (connectionmap[static_cast<int>(events[i].ident)]->GetFileFd())
-							RemoveReadEvent(connectionmap[static_cast<int>(events[i].ident)]->GetFileFd());
+						if (connection->GetFileFd())
+							RemoveReadEvent(connection->GetFileFd());
 						AddWriteEvent(connection->GetClientSocketFd());
 					}
+					// else if (connection->GetProgress() == TO_CGI)
+					// {
+					// 	if (connection->GetCgiInputFd())
+					// 	AddReadEvent(connection->GetCgiInputFd());
+					// 	AddWriteEvent(connection->GetCgiOutputFd());
+					// }
 				}
 			}
 			managerstatus();

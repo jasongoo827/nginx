@@ -35,7 +35,7 @@ public:
 	std::map<std::string, std::string>&	GetHeader();
 	const std::string&					GetBody();
 	enum Incomplete						GetStatus();
-	void								cutbody(ssize_t size);
+	void								CutBody(ssize_t size);
 	const std::string					FindValueInHeader(const std::string &key);
 
 private:

@@ -13,24 +13,23 @@ public:
 	~Response();
 	Response& operator=(const Response& ref);
 
-	void								make_response_30x(int);
+	void								make_response_30x(int, std::string str);
 	void								make_response_40x(int);
 	void								make_response_50x(int);
-	void								autoindex();
 
-	enum Method							get_method();
-	int									get_status();
-	std::map<std::string, std::string>	get_header();
-	const std::string&					getBody();
-	const std::string&					getMessage();
-	ssize_t								getMessageSize();
-	const std::string					getReason(int status);
-	void								cutMessage(ssize_t size);
-	void								addHeader(std::string key, std::string value);
-	void								addBasicHeader();
-	void								combineMessage();
-	void								addBody(const std::string& str, ssize_t size);
-	void								cutBody(ssize_t size);
+	enum Method							GetMethod();
+	int									GetStatus();
+	std::map<std::string, std::string>	GetHeader();
+	const std::string&					GetBody();
+	const std::string&					GetMessage();
+	ssize_t								GetMessageSize();
+	const std::string					GetReason(int status);
+	void								CutMessage(ssize_t size);
+	void								AddHeader(std::string key, std::string value);
+	void								AddBasicHeader();
+	void								CombineMessage();
+	void								AddBody(const std::string& str, ssize_t size);
+	void								CutBody(ssize_t size);
 	void								AutoIndex(const std::string& path);
 
 	static std::map<int, std::string>	reasonmap;

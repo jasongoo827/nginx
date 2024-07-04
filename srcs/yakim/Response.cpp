@@ -77,40 +77,41 @@ Response& Response::operator=(const Response& ref)
 }
 
 //GETTER
-enum Method	Response::get_method()
+enum Method	Response::GetMethod()
 {
 	return method;
 }
 
-int	Response::get_status()
+int	Response::GetStatus()
 {
 	return status;
 }
 
-std::map<std::string, std::string>	Response::get_header()
+std::map<std::string, std::string>	Response::GetHeader()
 {
 	return header;
 }
 
-const std::string&	Response::getBody()
+const std::string&	Response::GetBody()
 {
 	return body;
 }
 
-const std::string&	Response::getMessage()
+const std::string&	Response::GetMessage()
 {
 	return message;
 }
 
-ssize_t	Response::getMessageSize()
+ssize_t	Response::GetMessageSize()
 {
 	return message.size();
 }
 
 
-void	Response::make_response_30x(int status)
+void	Response::make_response_30x(int status, std::string str)
 {
 	this->status = status;
+	AddHeader("Location", str);
 }
 
 void	Response::make_response_40x(int status)
@@ -123,32 +124,31 @@ void	Response::make_response_50x(int status)
 	this->status = status;
 }
 	
-void	Response::cutMessage(ssize_t size)
+void	Response::CutMessage(ssize_t size)
 {
 	if (size == 0)
 		return ;
 	message.erase(message.begin(), message.begin() + size);
 }
 
-void	Response::addHeader(std::string key, std::string value)
+void	Response::AddHeader(std::string key, std::string value)
 {
 	header[key] = value;
 }
 
-void	Response::addBasicHeader()
+void	Response::AddBasicHeader()
 {
-	header.clear();
 	header["Server"] = "nginx/0.1";//
 	header["Date"] = utils::getTime();
 	header["Connection"] = "close";
 }
 
-void	Response::combineMessage()
+void	Response::CombineMessage()
 {
 	std::stringstream ss;
 
-	ss << "HTTP/1.1 " << status << " " << getReason(status) << "\r\n";
-	addBasicHeader();
+	ss << "HTTP/1.1 " << status << " " << GetReason(status) << "\r\n";
+	AddBasicHeader();
 	std::map<std::string, std::string>::iterator iter;
 	for (iter = header.begin(); iter != header.end(); ++iter)
 	{
@@ -166,12 +166,12 @@ void	Response::combineMessage()
 	message_size = message.size();
 }
 
-void	Response::addBody(const std::string& str, ssize_t size)
+void	Response::AddBody(const std::string& str, ssize_t size)
 {
 	body += str.substr(0, size);
 }
 
-const std::string	Response::getReason(int status)
+const std::string	Response::GetReason(int status)
 {
 	if (reasonmap.find(status) != reasonmap.end())
 		return (reasonmap[status]);
@@ -186,7 +186,7 @@ void Response::AutoIndex(const std::string& path)
 	std::stringstream	str;
 	std::string			tmp;
 
-	std::cout << "path: " << path << "\n";
+	std::cout << "AutoIndex for path: " << path << "\n";
 	dirptr = opendir(path.c_str());
 	str << "<html>\r\n<head><title>Index of " << path.c_str() << "</title></head>\r\n";
 	str << "<body>\r\n<h1>Index of " << path.c_str() << "</h1><hr>\r\n<pre>";
