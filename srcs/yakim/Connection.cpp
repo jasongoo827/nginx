@@ -138,6 +138,13 @@ void	Connection::MakeResponse()
 {
 	//request 유효성 검사
 	//http/1.1 인데 host 헤더가 없을 때
+	// if (request.GetStatus() != 0)
+	// {
+	// 	response.make_response_40x(400);
+	// 	progress = TO_CLIENT;
+	// 	return ;
+	// }
+		
 	if (request.GetVersion() == "HTTP/1.1")
 	{
 		if (request.GetHeader().find("host") == request.GetHeader().end())
