@@ -64,6 +64,7 @@ void	Connection::MainProcess(struct kevent& event)
 {
 	std::cout << "progress: " << progress << " event.filter: " << event.filter << "\n";
 	std::cout << "MainProcess for fd: " << client_socket_fd << "\n";
+	std::cout << "connection progress: " << progress << "\n";
 	if (progress == FROM_CLIENT && event.filter == EVFILT_READ)
 	{
 		ReadClient();
@@ -82,6 +83,7 @@ void	Connection::MainProcess(struct kevent& event)
 	else if (progress == FROM_CGI && event.filter == EVFILT_READ)
 	{
 		ReadCgi();
+		response.CombineMessage();
 		return ;
 	}
 	else if (progress == FROM_FILE && event.filter == EVFILT_READ)
@@ -138,12 +140,12 @@ void	Connection::MakeResponse()
 {
 	//request 유효성 검사
 	//http/1.1 인데 host 헤더가 없을 때
-	// if (request.GetStatus() != 0)
-	// {
-	// 	response.make_response_40x(400);
-	// 	progress = TO_CLIENT;
-	// 	return ;
-	// }
+	if (request.GetStatus() != 0)
+	{
+		response.make_response_40x(400);
+		progress = TO_CLIENT;
+		return ;
+	}
 		
 	if (request.GetVersion() == "HTTP/1.1")
 	{
@@ -359,11 +361,15 @@ void	Connection::ProcessFile()
 void	Connection::SendMessage()
 {
 	const std::string &buffer = response.GetMessage();
+	std::cout << "---------message-------------\n";
+	std::cout << response.GetMessage() << "\n";
+	std::cout << "---------message-------------\n";
 	std::cout << "messagesize: " << buffer.size() << "\n";
 	ssize_t send_size = write(client_socket_fd, buffer.data(), buffer.size());
 	std::cout << "send_size = " << send_size << "\n";
 	if (send_size < 0)
 	{
+		std::cout << "read error\n";
 		progress = END_CONNECTION;
 		return ;
 	}
@@ -424,17 +430,20 @@ void	Connection::ReadCgi()
 	ssize_t readsize = read(pipein, &buff[0], maxsize);
 	if (readsize < 0)
 	{
+		std::cout << "readcgi error\n";
 		response.make_response_50x(500);
 		progress = TO_CLIENT;
 		return ;
 	}
 	else if (readsize == maxsize)
 	{
+		std::cout << "readcgi again << "<<readsize<<"\n";
 		response.AddBody(buff, readsize);
 		return ;
 	}
 	else
 	{
+		std::cout << "readcgi done << "<<readsize<<"\n";
 		response.AddBody(buff, readsize);
 		progress = TO_CLIENT;
 		return ;
@@ -443,24 +452,28 @@ void	Connection::ReadCgi()
 
 void	Connection::SendCgi()
 {
+	std::cout << "SendCgi\n";
 	std::string buff;
 	ssize_t	maxsize = 65535;
 	buff.resize(maxsize);
-	ssize_t writesize = write(pipeout, request.GetBody().data(), maxsize);
+	ssize_t writesize = write(pipeout, request.GetBody().data(), request.GetBody().size());
 	if (writesize < 0)
 	{
+		std::cout << "send cgi error\n";
+		std::cout << errno << "\n";
 		response.make_response_50x(500);
 		progress = TO_CLIENT;
 		return ;
 	}
 	else if (writesize == maxsize)
 	{
+		std::cout << "send cgi again << "<<writesize<<"\n";
 		request.CutBody(writesize);
 		return ;
 	}
 	else
 	{
-		close(pipeout);
+		std::cout << "send cgi done << "<<writesize<<"\n";
 		progress = FROM_CGI;
 		return ;
 	}
