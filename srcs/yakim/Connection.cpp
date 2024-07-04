@@ -20,6 +20,8 @@ Connection::Connection(int clinet_socket_fd, sockaddr_in client_socket_addr, Con
 	this->config_ptr = config_ptr;
 	this->progress = FROM_CLIENT;
 	this->file_fd = 0;
+	this->pipein = 0;
+	this->pipeout = 0;
 	std::time(&timeval);
 }
 
@@ -31,6 +33,8 @@ Connection::Connection(const Connection& ref)
 	this->config_ptr = ref.config_ptr;
 	this->progress = ref.progress;
 	this->file_fd = ref.file_fd;
+	this->pipein = ref.pipein;
+	this->pipeout = ref.pipeout;
 	this->timeval = ref.timeval;
 }
 
@@ -46,7 +50,11 @@ Connection&	Connection::operator=(const Connection& ref)
 	this->config_ptr = ref.config_ptr;
 	this->progress = ref.progress;
 	this->file_fd = ref.file_fd;
+	this->pipein = ref.pipein;
+	this->pipeout = ref.pipeout;
 	this->timeval = ref.timeval;
+	this->request = ref.request;
+	this->cgi = ref.cgi;
 	return (*this);
 }
 
@@ -226,7 +234,7 @@ void	Connection::MakeResponse()
 	//filepath 만들기
 	path = "";
 	path += locate_ptr->GetRoot();
-	path += request.GetUrl();
+	path += request.GetUrl().substr();
 	std::cout << "path: " << path << "\n";
 	
 
@@ -371,22 +379,27 @@ void	Connection::ProcessCgi()
 	std::cout << "ProcessCgi\n";
 	//check if file exist
 	struct stat tmp;
+	std::cout << "path: " << path << "\n";
 	if (stat(path.c_str(), &tmp) == -1)
 	{
+		std::cout << "cannot find path\n";
 		response.make_response_40x(404);
 		return ;
 	}
 	//환경변수 설정
 	cgi.setEnv(request, *server_ptr);
+	std::cout << "setenv setup done\n";
 
 	//pipe 설정
 	cgi.setPipe();
+	std::cout << "pipe setup done\n";
 
 	//cgi 실행
 	if (cgi.CgiExec().ok())
 	{
 		pipein = cgi.GetPipeIn();
 		pipeout = cgi.GetPipeOut();
+		std::cout << "cgi setup done\n";
 		progress = TO_CGI;
 	}
 	else
@@ -440,6 +453,7 @@ void	Connection::SendCgi()
 	}
 	else
 	{
+		close(pipeout);
 		progress = FROM_CGI;
 		return ;
 	}

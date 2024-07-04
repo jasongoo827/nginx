@@ -7,11 +7,18 @@
 
 Cgi::Cgi()
 {
-	
+	pipe_in[0] = 0;
+	pipe_in[1] = 0;
+	pipe_out[0] = 0;
+	pipe_out[1] = 0;
 }
 
 Cgi::Cgi(const Cgi& ref)
 {
+	pipe_in[0] = 0;
+	pipe_in[1] = 0;
+	pipe_out[0] = 0;
+	pipe_out[1] = 0;
 	(void)ref;
 }
 
@@ -23,6 +30,10 @@ Cgi::~Cgi()
 
 Cgi& Cgi::operator=(const Cgi& ref)
 {
+	pipe_in[0] = 0;
+	pipe_in[1] = 0;
+	pipe_out[0] = 0;
+	pipe_out[1] = 0;
 	(void)ref;
 	return (*this);
 }

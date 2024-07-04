@@ -114,13 +114,27 @@ bool		ServerManager::RunServer(Config* config)
 					{
 						if (connection->GetFileFd())
 							RemoveReadEvent(connection->GetFileFd());
+						if (connection->GetPipein())
+						{
+							RemoveReadEvent(connection->GetPipein());
+						}
 						AddWriteEvent(connection->GetClientSocketFd());
+						AddConnectionMap(connection->GetClientSocketFd(), connection);
 					}
-					// else if (connection->GetProgress() == TO_CGI)
-					// {
-					// 	AddReadEvent(connection->GetPipein());
-					// 	AddWriteEvent(connection->GetPipeout());
-					// }
+					else if (connection->GetProgress() == TO_CGI)
+					{
+						AddWriteEvent(connection->GetPipeout());
+						// AddReadEvent(connection->GetPipein());
+						AddConnectionMap(connection->GetPipeout(), connection);
+					}
+					else if (connection->GetProgress() == FROM_CGI)
+					{
+						AddReadEvent(connection->GetPipein());
+						AddConnectionMap(connection->GetPipein(), connection);
+						// AddWriteEvent(connection->GetPipeout());
+						RemoveWriteEvent(connection->GetPipeout());
+						AddConnectionMap(connection->GetPipein(), connection);
+					}
 				}
 			}
 			managerstatus();
@@ -270,9 +284,7 @@ void	ServerManager::CloseConnection(int sock_client)
 	EV_SET(&change_event, sock_client, EVFILT_READ, EV_DELETE, 0, 0, NULL);
 	kevent(kq, &change_event, 1, NULL, 0, NULL);
 	std::cout << "remove read event\n";
-	std::vector<Connection>::iterator it;
 	std::cout <<"v_connection size: "<< v_connection.size() << "\n";
-
 	for (size_t i = 0; i < v_connection.size(); i++)
 	{
 		if (v_connection[i]->GetClientSocketFd() == sock_client)
@@ -284,10 +296,14 @@ void	ServerManager::CloseConnection(int sock_client)
 				RemoveConnectionMap(v_connection[i]->GetFileFd());
 				close(v_connection[i]->GetFileFd());
 			}
-			// if (it->GetCgiFd())
-			// {
-			// 	RemoveConnectionMap(it->GetCgiFd);
-			// }
+			if (v_connection[i]->GetPipein())
+			{
+				RemoveConnectionMap(v_connection[i]->GetPipein());
+			}
+			if (v_connection[i]->GetPipeout())
+			{
+				RemoveConnectionMap(v_connection[i]->GetPipeout());
+			}
 			delete v_connection[i];
 			v_connection.erase(v_connection.begin() + i);
 		}
