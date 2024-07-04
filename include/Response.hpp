@@ -31,6 +31,8 @@ public:
 	void								combineMessage();
 	void								addBody(const std::string& str, ssize_t size);
 	void								cutBody(ssize_t size);
+	void								AutoIndex(const std::string& path);
+
 	static std::map<int, std::string>	reasonmap;
 
 private:

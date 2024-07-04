@@ -52,14 +52,15 @@ Connection&	Connection::operator=(const Connection& ref)
 
 
 
-bool	Connection::mainprocess(struct kevent& event)
+void	Connection::mainprocess(struct kevent& event)
 {
 	std::cout << "progress: " << progress << " event.filter: " << event.filter << "\n";
 	std::cout << "mainprocess for fd: " << client_socket_fd << "\n";
 	if (progress == FROM_CLIENT && event.filter == EVFILT_READ)
 	{
-		if (readClient() == false)
-			return (false);
+		readClient();
+		if (progress == END_CONNECTION)
+			return ;
 		std::cout << "read done";
 		makeResponse();
 		if (progress == TO_CLIENT)
@@ -69,17 +70,17 @@ bool	Connection::mainprocess(struct kevent& event)
 			writeevent = 1;
 		}
 		else if (progress == FROM_FILE)
-		return (true);
+			return ;
 	}
 	else if (progress == TO_CGI && event.filter == EVFILT_WRITE)
 	{
 		sendCgi();
-		return (true);
+		return ;
 	}
 	else if (progress == FROM_CGI && event.filter == EVFILT_READ)
 	{
 		readCgi();
-		return (true);
+		return ;
 	}
 	else if (progress == FROM_FILE && event.filter == EVFILT_READ)
 	{
@@ -90,20 +91,22 @@ bool	Connection::mainprocess(struct kevent& event)
 			response.combineMessage();
 			writeevent = 1;
 		}
-		return (true);
+		return ;
 	}
 	else if (progress == TO_CLIENT && event.filter == EVFILT_WRITE)
 	{
 		std::cout << "sendMessage\n";
 		sendMessage();
-		return (false);
+		return ;
 	}
 	else
-		return (false);
-	return (true);
+	{
+		progress = END_CONNECTION;
+		return ;
+	}
 }
 
-bool	Connection::readClient()
+void	Connection::readClient()
 {
 	char				buffer[1000000];
 	std::cout << client_socket_fd << "\n";
@@ -111,7 +114,8 @@ bool	Connection::readClient()
 
 	if (nread <= 0)
 	{
-		return (false);
+		progress = END_CONNECTION;
+		return ;
 	}
 	else
 	{
@@ -128,7 +132,7 @@ bool	Connection::readClient()
 			std::cout << it->first << ": \'" << it->second << "\'\n";
 		std::cout << '\'' << request.GetBody() << "\'\n";
 		std::cout << "status = " << request.GetStatus() << '\n';
-		return (true);
+		return ;
 	}
 }
 
@@ -293,7 +297,7 @@ void	Connection::processDir()
 	//check if autoindex is on
 	if (locate_ptr->GetAutoIndex())
 	{
-		// response.autoindex();
+		response.AutoIndex(path);
 		progress = TO_CLIENT;
 		return ;
 	}
@@ -354,12 +358,14 @@ void	Connection::sendMessage()
 	if (send_size < 0)
 	{
 		// ServerManager::GetInstance().CloseConnection(client_socket_fd);
+		progress = END_CONNECTION;
 		return ;
 	}
 	else if (send_size == response.getMessageSize())
 	{
 		//response 완료
 		// ServerManager::GetInstance().CloseConnection(client_socket_fd);
+		progress = END_CONNECTION;
 		return ;
 	}
 	else
@@ -472,10 +478,7 @@ void	Connection::readFile()
 	else
 	{
 		response.addBody(buff, readsize);
-		std::cout << response.getBody().substr(0, readsize);
-		// ServerManager::GetInstance().RemoveConnectionMap(file_fd);
-
-		// ServerManager::GetInstance().AddWriteEvent(client_socket_fd);
+		// std::cout << response.getBody().substr(0, readsize);
 		progress = TO_CLIENT;
 		std::cout << readsize << ": readfile done\n";
 		return ;
