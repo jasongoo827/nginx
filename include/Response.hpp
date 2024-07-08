@@ -27,6 +27,9 @@ public:
 	void								CutMessage(ssize_t size);
 	void								AddHeader(std::string key, std::string value);
 	void								AddBasicHeader();
+	void								AddCookieHeader();
+	std::string							GenerateCookie(void);
+	std::string							SetExpireDate(void);
 	void								CombineMessage();
 	void								AddBody(const std::string& str, ssize_t size);
 	void								CutBody(ssize_t size);
