@@ -98,6 +98,7 @@ void	Parser::ParseBody(Request &request)
 			tmp_str = utils::ReadData(data, data_size);
 			if (tmp_str.size() != static_cast<size_t>(data_size))
 				request.SetStatus(BODY_SIZE);
+			body = tmp_str;
 		}
 	}
 	request.SetBody(body);

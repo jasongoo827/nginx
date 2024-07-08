@@ -7,11 +7,18 @@
 
 Cgi::Cgi()
 {
-	
+	pipe_in[0] = 0;
+	pipe_in[1] = 0;
+	pipe_out[0] = 0;
+	pipe_out[1] = 0;
 }
 
 Cgi::Cgi(const Cgi& ref)
 {
+	pipe_in[0] = 0;
+	pipe_in[1] = 0;
+	pipe_out[0] = 0;
+	pipe_out[1] = 0;
 	(void)ref;
 }
 
@@ -23,6 +30,10 @@ Cgi::~Cgi()
 
 Cgi& Cgi::operator=(const Cgi& ref)
 {
+	pipe_in[0] = 0;
+	pipe_in[1] = 0;
+	pipe_out[0] = 0;
+	pipe_out[1] = 0;
 	(void)ref;
 	return (*this);
 }
@@ -30,12 +41,12 @@ Cgi& Cgi::operator=(const Cgi& ref)
 
 int	Cgi::GetPipeIn()
 {
-	return (pipe_in[1]);
+	return (pipe_in[0]);
 }
 
 int	Cgi::GetPipeOut()
 {
-	return (pipe_out[0]);
+	return (pipe_out[1]);
 }
 
 
@@ -63,10 +74,10 @@ void	Cgi::setEnv(Request& req, const Server& ser)
 	// only_file = root.substr(start + 1, finish - start);
 	// only_root = root.substr(0, start);
 
-	// envmap[std::string("USER")] = std::string(std::getenv("USER"));
-	// envmap[std::string("PATH")] = std::string(std::getenv("PATH"));
-	// envmap[std::string("LANG")] = std::string(std::getenv("LANG"));
-	// envmap[std::string("PWD")] = std::string(std::getenv("PWD"));
+	envmap[std::string("USER")] = std::string(std::getenv("USER"));
+	envmap[std::string("PATH")] = std::string(std::getenv("PATH"));
+	envmap[std::string("LANG")] = std::string(std::getenv("LANG"));
+	envmap[std::string("PWD")] = std::string(std::getenv("PWD"));
 
 	envmap[std::string("AUTH_TYPE")] = std::string("");
 	envmap[std::string("CONTENT_LENGTH")] = std::string("");//length
@@ -97,6 +108,8 @@ Status	Cgi::setPipe()
 	utils::SetNonBlock(pipe_in[1]);
 	utils::SetNonBlock(pipe_out[0]);
 	utils::SetNonBlock(pipe_out[1]);
+	std::cout << "pipein: " << pipe_in[0] << pipe_in[1] << "\n";
+	std::cout << "pipeout: " << pipe_out[0] << pipe_out[1] << "\n";
 	return (Status::OK());
 }
 
@@ -109,8 +122,8 @@ Status	Cgi::CgiExec()
 	}
 	if (pid == 0)
 	{
-		dup2(pipe_in[0], STDOUT_FILENO);
-		dup2(pipe_out[1], STDIN_FILENO);
+		dup2(pipe_in[1], STDOUT_FILENO);
+		dup2(pipe_out[0], STDIN_FILENO);
 		close(pipe_in[0]);
 		close(pipe_in[1]);
 		close(pipe_out[0]);
@@ -121,13 +134,14 @@ Status	Cgi::CgiExec()
 		argv[1] = NULL;
 		if (execve(argv[0], argv, envp.data()) == -1)
 		{
+			std::cerr << "execve failed" << std::endl;
 			std::exit(1);
 		}
 	}
 	else
 	{
-		close(pipe_in[0]);
-		close(pipe_out[1]);
+		close(pipe_in[1]);
+		close(pipe_out[0]);
 	}
 	return (Status::OK());
 }
