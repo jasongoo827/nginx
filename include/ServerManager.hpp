@@ -50,7 +50,6 @@ private:
 	std::map<int, Connection*>				connectionmap;
 	std::vector<Connection*>				v_connection;
 	Session									session;
-	
 	int										kq;
 	int										event_count;
 	int										sock_serv;

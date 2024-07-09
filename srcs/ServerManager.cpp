@@ -69,11 +69,10 @@ bool		ServerManager::RunServer(Config* config)
 				{
 					int 				sock_client;
 					struct sockaddr_in	addr_client;
-
 					std::cout << "sock_serv: " << sock_serv << "\n";
 					if (InitClientSocket(kq, sock_serv, change_event, sock_client, addr_client, sizeof(addr_client)) == false)
 						continue ; // 실패한 client를 제외한 나머지 이벤트에 대한 처리를 위해 continue
-					Connection *con = new Connection(sock_client, addr_client, config);
+					Connection *con = new Connection(sock_client, addr_client, config, &session);
 					v_connection.push_back(con);
 					std::cout << "\n----after push_back----\n";
 					// managerstatus();
@@ -97,7 +96,7 @@ bool		ServerManager::RunServer(Config* config)
 					}
 					Connection* connection = connectionmap[static_cast<int>(events[i].ident)];
 					std::cout << "socket_fd: " << connection->GetClientSocketFd() << '\n';
-					connection->MainProcess(events[i], session);
+					connection->MainProcess(events[i]);
 					AfterProcess(connection);
 				}
 			}

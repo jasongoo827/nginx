@@ -63,7 +63,7 @@ foreach ($parts as $part)
 	fwrite($file_handle, substr($body, 0, -2));
 	fclose($file_handle);
 
-	$result .= "File '{$filename}' uploaded successfully.";
+	$result .= "File '{$filename}' uploaded successfully.\nTrgt={$filename}";
 }
 
 echo $result;

@@ -8,15 +8,30 @@ bool	Session::CheckValidSession(std::string cli_cookie)
 {
 	size_t	cur_time = GetTimeMicro();
 
-	SetHashCookie(cli_cookie);
-	if (expire_time.find(hash_cookie) == expire_time.end())
-		return (false);
-	if (cur_time - expire_time[hash_cookie] > 900000000)
+	size_t	pos = cli_cookie.find('=');
+	if (pos == std::string::npos)
 	{
-		sessions[hash_cookie].clear();
-		sessions.erase(hash_cookie);
+		std::cout << "valid check done\n";
 		return (false);
 	}
+	std::string	cookie = cli_cookie.substr(cli_cookie.find('=') + 1);
+	std::cout << "\n\n" << cookie << "\n\n";
+	SetHashCookie(cookie);
+	if (expire_time.find(hash_cookie) == expire_time.end())
+	{
+		std::cout << "valid check done1\n";
+		return (false);
+	}
+	if (cur_time - expire_time[hash_cookie] > 900000000)
+	{
+		sessions.erase(sessions.find(hash_cookie));
+		expire_time.erase(expire_time.find(hash_cookie));
+		std::cout << "valid check done2\n";
+		return (false);
+	}
+	send_cookie = cookie;
+	SetSendCookie();
+	std::cout << "valid check done3\n";
 	return (true);
 }
 
@@ -27,10 +42,7 @@ void	Session::UpdateExpireTime()
 
 void	Session::CreateSession()
 {
-	std::vector<std::string>	tmp_vec;
-
 	GenerateCookie();
-	sessions[hash_cookie] = tmp_vec;
 	// 새로운 세션을 만들고 쿠키 아이디를 생성한다.
 	// 쿠키 아이디를 생성하고 나서는 중복 확인을 실시한 뒤 중복인 경우 x2를 하고 다시 검사하는 식으로 구현한다.
 }
@@ -78,6 +90,17 @@ void	Session::GenerateCookie()
 		send_cookie = ss.str();
 		SetHashCookie(send_cookie);
 	}
+	SetSendCookie();
+}
+
+void	Session::SetSendCookie()
+{
+	send_cookie = "cookieid=" + send_cookie;
+	send_cookie += "; expires=";
+	send_cookie += utils::getExpireTime();
+	send_cookie += "; path=/; HttpOnly";
+
+	UpdateExpireTime();
 }
 
 void	Session::SetHashCookie(std::string &cli_cookie_str)
