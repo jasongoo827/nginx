@@ -125,7 +125,7 @@ void	Connection::ReadClient()
 	}
 	else
 	{
-		std::cout << "\n\n원본 메시지\n" << std::string(buffer, nread) << "\n\n\n";
+		// std::cout << "\n\n원본 메시지\n" << std::string(buffer, nread) << "\n\n\n";
 		Parser	pars_buf(std::string(buffer, nread));
 		pars_buf.ParseStartline(request);
 		pars_buf.ParseHeader(request);
@@ -133,14 +133,14 @@ void	Connection::ReadClient()
 			request.SetStatus(READ_DONE);
 		pars_buf.ParseBody(request);
 		pars_buf.ParseTrailer(request);
-		std::cout << "파싱 메시지\n";
-		std::cout << request.GetMethod() << " " << request.GetUrl() << " " << request.GetVersion() << '\n';
-		std::map<std::string, std::string> tmp_map = request.GetHeader();
-		for (std::map<std::string, std::string>::iterator it = tmp_map.begin(); it != tmp_map.end(); ++it)
-			std::cout << it->first << ": \'" << it->second << "\'\n";
-		std::cout << '\'' << request.GetBody() << "\'\n";
+		// std::cout << "파싱 메시지\n";
+		// std::cout << request.GetMethod() << " " << request.GetUrl() << " " << request.GetVersion() << '\n';
+		// std::map<std::string, std::string> tmp_map = request.GetHeader();
+		// for (std::map<std::string, std::string>::iterator it = tmp_map.begin(); it != tmp_map.end(); ++it)
+		// 	std::cout << it->first << ": \'" << it->second << "\'\n";
+		// std::cout << '\'' << request.GetBody() << "\'\n";
 
-		std::cout << "status = " << request.GetStatus() << '\n';
+		// std::cout << "status = " << request.GetStatus() << '\n';
 		if (request.GetStatus() != READ_DONE)
 			progress = READ_CONTINUE;
 		return ;
@@ -472,10 +472,8 @@ void	Connection::ReadCgi()
 void	Connection::SendCgi()
 {
 	std::cout << "SendCgi\n";
-	std::string buff;
-	ssize_t	maxsize = 65535;
-	buff.resize(maxsize);
 	ssize_t writesize = write(pipeout, request.GetBody().data(), request.GetBody().size());
+	std::cout << "\nsize!@!@" << writesize << '\n';
 	if (writesize < 0)
 	{
 		std::cout << "send cgi error\n";
@@ -484,7 +482,7 @@ void	Connection::SendCgi()
 		progress = TO_CLIENT;
 		return ;
 	}
-	else if (writesize == maxsize)
+	else if (!request.GetBody().empty())
 	{
 		std::cout << "send cgi again << "<<writesize<<"\n";
 		request.CutBody(writesize);
@@ -493,6 +491,7 @@ void	Connection::SendCgi()
 	else
 	{
 		std::cout << "send cgi done << "<<writesize<<"\n";
+		request.CutBody(writesize);
 		progress = FROM_CGI;
 		return ;
 	}
