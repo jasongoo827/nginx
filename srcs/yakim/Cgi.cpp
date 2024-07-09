@@ -1,5 +1,6 @@
 #include "Cgi.hpp"
 #include "ServerManager.hpp"
+#include "Utils.hpp"
 #include <string>
 #include <fcntl.h>
 #include <unistd.h>
@@ -80,14 +81,14 @@ void	Cgi::setEnv(Request& req, const Server& ser)
 	envmap[std::string("PWD")] = std::string(std::getenv("PWD"));
 
 	envmap[std::string("AUTH_TYPE")] = std::string("");
-	envmap[std::string("CONTENT_LENGTH")] = std::string("");//length
-	envmap[std::string("CONTENT_TYPE")] = "php-cgi";
+	envmap[std::string("CONTENT_LENGTH")] = req.GetHeader()["content-length"];
+	envmap[std::string("CONTENT_TYPE")] = req.GetHeader()["content-type"];
 	envmap[std::string("GATEWAY_INTERFACE")] = std::string("CGI/1.1");
 	envmap[std::string("PATH_INFO")] = std::string(req.GetUrl());
 	envmap[std::string("PATH_TRANSLATED")] = std::string(req.GetUrl());//
 	envmap[std::string("QUERY_STRING")] = "";
 	envmap[std::string("REMOTE_ADDR")] = "127.0.0.1";
-	envmap[std::string("REQUEST_METHOD")] = req.GetMethod();
+	envmap[std::string("REQUEST_METHOD")] = utils::MethodToString(req.GetMethod());
 	envmap[std::string("SCRIPT_NAME")] = std::string(req.GetUrl());
 	envmap[std::string("SERVER_NAME")] = ser.GetServerName();
 	envmap[std::string("SERVER_PORT")] = ser.GetPort();
@@ -113,7 +114,7 @@ Status	Cgi::setPipe()
 	return (Status::OK());
 }
 
-Status	Cgi::CgiExec()
+Status	Cgi::CgiExec(std::string& path)
 {
 	pid_t pid = fork();
 	if (pid < 0)
@@ -128,13 +129,16 @@ Status	Cgi::CgiExec()
 		close(pipe_in[1]);
 		close(pipe_out[0]);
 		close(pipe_out[1]);
+		char* executable = new char[path.size() + 1];
+    	std::strcpy(executable, path.c_str());
+
 		char* argv[2];
-		std::string s("./usr/cgi/upload.php");
-		argv[0] = &s[0];
+		argv[0] = executable;
 		argv[1] = NULL;
 		if (execve(argv[0], argv, envp.data()) == -1)
 		{
-			std::cerr << "execve failed" << std::endl;
+			std::cerr << "execve failed: errno: " << errno << "\n";
+			delete[] executable;
 			std::exit(1);
 		}
 	}

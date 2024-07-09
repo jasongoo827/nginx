@@ -37,6 +37,8 @@ public:
 	int							GetPipeout();
 	enum CurrentProgress		GetProgress();
 	int							GetFileFd();
+	std::time_t					GetTimeval();
+	void						SetProgress(enum CurrentProgress progress);
 
 private:
 	int						client_socket_fd;
@@ -52,7 +54,7 @@ private:
 	int						file_fd;
 	int						pipein;
 	int						pipeout;
-	time_t					timeval;
+	std::time_t				timeval;
 };
 
 #endif

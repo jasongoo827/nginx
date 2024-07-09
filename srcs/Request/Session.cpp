@@ -25,7 +25,7 @@ void	Session::UpdateExpireTime()
 	expire_time[hash_cookie] = GetTimeMicro();
 }
 
-std::string&	Session::CreateSession()
+void	Session::CreateSession()
 {
 	std::vector<std::string>	tmp_vec;
 
@@ -33,6 +33,11 @@ std::string&	Session::CreateSession()
 	sessions[hash_cookie] = tmp_vec;
 	// 새로운 세션을 만들고 쿠키 아이디를 생성한다.
 	// 쿠키 아이디를 생성하고 나서는 중복 확인을 실시한 뒤 중복인 경우 x2를 하고 다시 검사하는 식으로 구현한다.
+}
+
+std::string	&Session::GetSendCookie()
+{
+	return (send_cookie);
 }
 
 void	Session::AddSessionData(std::string file_name)

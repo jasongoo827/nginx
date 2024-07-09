@@ -11,8 +11,8 @@
 # include <arpa/inet.h>
 # include <string.h>
 # include <unistd.h>
-# include <Connection.hpp>
-
+# include "Connection.hpp"
+# include "Session.hpp"
 
 class ServerManager
 {
@@ -35,6 +35,10 @@ public:
 	void					RemoveWriteEvent(int client_socket_fd);
 	void					AddReadEvent(int fd);
 	void					RemoveReadEvent(int fd);
+	void					CheckConnectionTimeout();
+	void					AfterProcess(Connection* connection);
+
+
 
 	void					managerstatus();
 
@@ -45,7 +49,8 @@ private:
 	ServerManager& operator=(const ServerManager& ref);
 	std::map<int, Connection*>				connectionmap;
 	std::vector<Connection*>				v_connection;
-	std::vector<std::string>				v_session; // 
+	std::vector<std::string>				v_session;
+	
 	int										kq;
 	int										event_count;
 	int										sock_serv;

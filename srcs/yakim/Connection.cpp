@@ -70,6 +70,12 @@ void	Connection::MainProcess(struct kevent& event)
 		ReadClient();
 		if (progress == END_CONNECTION)
 			return ;
+		if (progress == READ_CONTINUE)
+		{
+			progress = FROM_CLIENT;
+			return ;
+		}
+		// progress == readcontinue면 from_client로 바꾸고 리턴 -> 이벤트와 fd 유지하고 계속 읽기 가능!
 		std::cout << "read done";
 		MakeResponse();
 		response.CombineMessage();
@@ -119,19 +125,24 @@ void	Connection::ReadClient()
 	}
 	else
 	{
-		std::cout << "\n\n원본 메시지\n" << std::string(buffer, nread) << "\n\n\n";
+		// std::cout << "\n\n원본 메시지\n" << std::string(buffer, nread) << "\n\n\n";
 		Parser	pars_buf(std::string(buffer, nread));
 		pars_buf.ParseStartline(request);
 		pars_buf.ParseHeader(request);
+		if (request.GetStatus() == READ_BODY && (request.GetMethod() == GET || request.GetMethod() == DELETE))
+			request.SetStatus(READ_DONE);
 		pars_buf.ParseBody(request);
 		pars_buf.ParseTrailer(request);
-		std::cout << "파싱 메시지\n";
-		std::cout << request.GetMethod() << " " << request.GetUrl() << " " << request.GetVersion() << '\n';
-		std::map<std::string, std::string> tmp_map = request.GetHeader();
-		for (std::map<std::string, std::string>::iterator it = tmp_map.begin(); it != tmp_map.end(); ++it)
-			std::cout << it->first << ": \'" << it->second << "\'\n";
-		std::cout << '\'' << request.GetBody() << "\'\n";
-		std::cout << "status = " << request.GetStatus() << '\n';
+		// std::cout << "파싱 메시지\n";
+		// std::cout << request.GetMethod() << " " << request.GetUrl() << " " << request.GetVersion() << '\n';
+		// std::map<std::string, std::string> tmp_map = request.GetHeader();
+		// for (std::map<std::string, std::string>::iterator it = tmp_map.begin(); it != tmp_map.end(); ++it)
+		// 	std::cout << it->first << ": \'" << it->second << "\'\n";
+		// std::cout << '\'' << request.GetBody() << "\'\n";
+
+		// std::cout << "status = " << request.GetStatus() << '\n';
+		if (request.GetStatus() != READ_DONE)
+			progress = READ_CONTINUE;
 		return ;
 	}
 }
@@ -140,13 +151,13 @@ void	Connection::MakeResponse()
 {
 	//request 유효성 검사
 	//http/1.1 인데 host 헤더가 없을 때
-	if (request.GetStatus() != 0)
+	if (request.GetStatus() == BAD_REQUEST)
 	{
-		response.make_response_40x(400);
+		response.make_response_40x(405);
 		progress = TO_CLIENT;
 		return ;
 	}
-		
+	//http/1.1 인데 host 헤더가 없을 때
 	if (request.GetVersion() == "HTTP/1.1")
 	{
 		if (request.GetHeader().find("host") == request.GetHeader().end())
@@ -243,7 +254,8 @@ void	Connection::MakeResponse()
 	//filepath 만들기
 	path = "";
 	path += locate_ptr->GetRoot();
-	path += request.GetUrl().substr();
+	path += "/";
+	path += request.GetUrl().substr(locate_ptr->GetLocatePath().size());
 	std::cout << "path: " << path << "\n";
 	
 
@@ -282,10 +294,16 @@ void	Connection::ProcessDir()
 	if (stat(path.c_str(), &buf) == -1)
 	{
 		std::cout << "path: " << path << "\n";
-		std::cout << "readdir failed\n";
+		std::cout << "file not exist\n";
 		response.make_response_40x(404);
 		progress = TO_CLIENT;
 		return;
+	}
+	if ((buf.st_mode & R_OK) == 0)
+	{
+		response.make_response_40x(403);
+		progress = TO_CLIENT;
+		return ;
 	}
 	//check if default index file exist
 	if (!locate_ptr->GetIndexVec().empty())
@@ -362,8 +380,8 @@ void	Connection::SendMessage()
 {
 	const std::string &buffer = response.GetMessage();
 	std::cout << "---------message-------------\n";
-	std::cout << response.GetMessage() << "\n";
-	std::cout << "---------message-------------\n";
+	std::cout << response.GetMessage();
+	std::cout << "---------message end-------------\n";
 	std::cout << "messagesize: " << buffer.size() << "\n";
 	ssize_t send_size = write(client_socket_fd, buffer.data(), buffer.size());
 	std::cout << "send_size = " << send_size << "\n";
@@ -397,6 +415,7 @@ void	Connection::ProcessCgi()
 	{
 		std::cout << "cannot find path\n";
 		response.make_response_40x(404);
+		progress = TO_CLIENT;
 		return ;
 	}
 	//환경변수 설정
@@ -408,7 +427,7 @@ void	Connection::ProcessCgi()
 	std::cout << "pipe setup done\n";
 
 	//cgi 실행
-	if (cgi.CgiExec().ok())
+	if (cgi.CgiExec(path).ok())
 	{
 		pipein = cgi.GetPipeIn();
 		pipeout = cgi.GetPipeOut();
@@ -453,10 +472,8 @@ void	Connection::ReadCgi()
 void	Connection::SendCgi()
 {
 	std::cout << "SendCgi\n";
-	std::string buff;
-	ssize_t	maxsize = 65535;
-	buff.resize(maxsize);
 	ssize_t writesize = write(pipeout, request.GetBody().data(), request.GetBody().size());
+	std::cout << "\nsize!@!@" << writesize << '\n';
 	if (writesize < 0)
 	{
 		std::cout << "send cgi error\n";
@@ -465,7 +482,7 @@ void	Connection::SendCgi()
 		progress = TO_CLIENT;
 		return ;
 	}
-	else if (writesize == maxsize)
+	else if (!request.GetBody().empty())
 	{
 		std::cout << "send cgi again << "<<writesize<<"\n";
 		request.CutBody(writesize);
@@ -474,6 +491,7 @@ void	Connection::SendCgi()
 	else
 	{
 		std::cout << "send cgi done << "<<writesize<<"\n";
+		request.CutBody(writesize);
 		progress = FROM_CGI;
 		return ;
 	}
@@ -515,6 +533,11 @@ enum CurrentProgress		Connection::GetProgress()
 	return progress;
 }
 
+void		Connection::SetProgress(enum CurrentProgress progress)
+{
+	this->progress = progress;
+}
+
 int		Connection::GetFileFd()
 {
 	return file_fd;
@@ -527,4 +550,9 @@ int		Connection::GetPipein()
 int		Connection::GetPipeout()
 {
 	return pipeout;
+}
+
+std::time_t		Connection::GetTimeval()
+{
+	return timeval;
 }

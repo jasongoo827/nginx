@@ -11,14 +11,17 @@ void	Parser::ParseStartline(Request &request)
 	std::string			url = "";
 	std::string			version = "";
 
+	if (request.GetStatus() != READ_STARTLINE)
+		return ;
 	method = utils::DivideStrBySpace(data);
 	request.SetMethod(method);
 	url = utils::DivideStrBySpace(data);
 	request.SetUrl(url);
 	version = utils::DivideStrByCRLF(data);
 	request.SetVersion(version);
+	request.SetStatus(READ_HEADER);
 	if (request.GetMethod() == OTHER || url.empty() || version.empty())
-		request.SetStatus(STARTLINE);
+		request.SetStatus(BAD_REQUEST);
 };
 
 void	Parser::ParseHeader(Request &request)
@@ -28,12 +31,12 @@ void	Parser::ParseHeader(Request &request)
 	std::string							header_name = "";
 	std::string							header_value = "";
 
-	if (request.GetStatus() != NO_ERROR)
+	if (request.GetStatus() != READ_HEADER)
 		return ;
-	std::cout << "1\n";
+	if (data.find("\r\n\r\n") != std::string::npos)
+		request.SetStatus(READ_BODY);
 	while (!data.empty())
 	{
-		std::cout << "2\n";
 		tmp_str = utils::DivideStrByCRLF(data);
 		if (tmp_str.empty())
 			break;
@@ -45,64 +48,63 @@ void	Parser::ParseHeader(Request &request)
 		else
 			utils::SplitHeaderData(tmp_str, header_name, header_value);
 		if (utils::CheckNameChar(header_name) || utils::CheckHostDup(header_name, request_header))
-			request.SetStatus(WRONG_HEADER);
+			request.SetStatus(BAD_REQUEST);
 		request_header.insert(std::make_pair(header_name, header_value));
 	}
 	if (request_header.empty() || request_header.find("host") == request_header.end())
-		request.SetStatus(WRONG_HEADER);
-	std::cout << "3, " << request.GetStatus() << "\n";
+		request.SetStatus(BAD_REQUEST);
 };
 
 void	Parser::ParseBody(Request &request)
 {
-	int			data_size = 0;
+	size_t		data_size = 0;
 	std::string	tmp_str = "";
-	std::string	body = "";
+	std::string	body = request.GetBody();
 
-	if (request.GetStatus() != NO_ERROR)
+	if (request.GetStatus() != READ_BODY)
 		return ;
 	if (request.GetMethod() == POST)
 	{
-		std::cout << "4\n";
 		if (request.FindValueInHeader("transfer-encoding") == "chunked")
 		{
-			std::cout << "5\n";
-			int	cur_size = utils::ReadChunkSize(data);
+			size_t	cur_size = request.GetBytesToRead();
+			if (cur_size == 0)
+				cur_size = utils::ReadChunkSize(data);
 			while (cur_size > 0)
 			{
-				std::cout << "6\n";
+				if (data_size > 10000000 || cur_size > 10000000)
+				{
+					request.SetStatus(BAD_REQUEST);
+					break ;
+				}
 				tmp_str = utils::ReadData(data, cur_size);
 				data_size += cur_size;
-				std::cout << "7\n";
-				if (tmp_str.size() != static_cast<size_t>(cur_size))
+				body += tmp_str;
+				if (tmp_str.size() != cur_size)
 				{
-					request.SetStatus(INVALID_CHUNK);
+					request.SetBytesToRead(cur_size - tmp_str.size());
 					break ;
 				}
 				cur_size = utils::ReadChunkSize(data);
-				if (data_size > 1000000)
-				{
-					request.SetStatus(BODY_SIZE);
-					break ;
-				}
-				body += tmp_str;
 			}
-			if (cur_size == -1)
-				request.SetStatus(INVALID_CHUNK);
+			if (cur_size == 0)
+				request.SetStatus(READ_TRAILER);
 		}
 		else
 		{
-			data_size = std::atoi(request.FindValueInHeader("content-length").c_str());
-			if (request.FindValueInHeader("content-length").empty() || data_size < 0 || 1000000 < data_size)
-				request.SetStatus(BODY_SIZE);
+			if (request.GetBytesToRead() == 0)
+				request.SetBytesToRead(std::atoi(request.FindValueInHeader("content-length").c_str()));
+			data_size = request.GetBytesToRead();
+			if (request.FindValueInHeader("content-length").empty() || data_size < 0 || 10000000 < data_size)
+				request.SetStatus(BAD_REQUEST);
 			tmp_str = utils::ReadData(data, data_size);
-			if (tmp_str.size() != static_cast<size_t>(data_size))
-				request.SetStatus(BODY_SIZE);
-			body = tmp_str;
+			request.SetBytesToRead(data_size - tmp_str.size());
+			body += tmp_str;
+			if (request.GetBytesToRead() == 0)
+				request.SetStatus(READ_DONE);
 		}
 	}
 	request.SetBody(body);
-	std::cout << "8, " << request.GetStatus() << "\n";
 };
 
 void	Parser::ParseTrailer(Request &request)
@@ -113,8 +115,10 @@ void	Parser::ParseTrailer(Request &request)
 	std::string							trailer_name;
 	std::string							trailer_value;
 
-	if (request.GetStatus() != NO_ERROR)
+	if (request.GetStatus() != READ_TRAILER)
 		return ;
+	if (data.find("\r\n\r\n") != std::string::npos)
+		request.SetStatus(READ_DONE);
 	while (!data.empty())
 	{
 		tmp_str = utils::DivideStrByCRLF(data);
@@ -122,22 +126,24 @@ void	Parser::ParseTrailer(Request &request)
 			break;
 	}
 	if (tmp_str.empty() || trailer_list == "")
+	{
+		request.SetStatus(READ_DONE);
 		return ;
+	}
 	utils::SplitHeaderData(tmp_str, trailer_name, trailer_value);
 	if (trailer_list.find(trailer_name) == std::string::npos || utils::CheckNameChar(trailer_name))
 	{
-		std::cout << '\n' << trailer_name << " <<< 4\n";
-		request.SetStatus(WRONG_HEADER);
+		request.SetStatus(BAD_REQUEST);
 		return ;
 	}
 	if (trailer_name == "host" && request_header.find("host") != request_header.end())
-		request.SetStatus(WRONG_HEADER);
+		request.SetStatus(BAD_REQUEST);
 	request_header.insert(std::make_pair(trailer_name, trailer_value));
 	while (!data.empty())
 	{
 		tmp_str = utils::DivideStrByCRLF(data);
 		if (tmp_str.empty())
-			break;
+			break ;
 		if (tmp_str[0] == ' ' || tmp_str[0] == '\t')
 		{
 			utils::TrimSpaceTap(tmp_str);
@@ -147,13 +153,11 @@ void	Parser::ParseTrailer(Request &request)
 			utils::SplitHeaderData(tmp_str, trailer_name, trailer_value);
 		if (trailer_list.find(trailer_name) == std::string::npos || utils::CheckNameChar(trailer_name))
 		{
-			std::cout << '\n' << trailer_name << " <<< 5\n";
-			request.SetStatus(WRONG_HEADER);
+			request.SetStatus(BAD_REQUEST);
 			return ;
 		}
 		if (trailer_name == "host" && request_header.find("host") != request_header.end())
-			request.SetStatus(WRONG_HEADER);
+			request.SetStatus(BAD_REQUEST);
 		request_header.insert(std::make_pair(trailer_name, trailer_value));
 	}
-	std::cout << "9, " << request.GetStatus() << "\n";
 };

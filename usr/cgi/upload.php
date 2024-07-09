@@ -1,52 +1,70 @@
 #!/usr/bin/php
 <?php
-$target_dir = "uploads/";
-$target_file = $target_dir . basename($_FILES["fileToUpload"]["name"]);
-$uploadOk = 1;
-$imageFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
+// 환경 변수 사용
+$contentType = getenv('CONTENT_TYPE');
+$contentLength = getenv('CONTENT_LENGTH');
+$result = "";
+// 표준 입력에서 본문 데이터 읽기
+$stdin = fopen('php://stdin', 'r');
+if ($stdin == false)
+	$result .= "stdin open error";
+$requestBody = '';
 
-// Check if image file is a actual image or fake image
-if(isset($_POST["submit"])) {
-    $check = getimagesize($_FILES["fileToUpload"]["tmp_name"]);
-	file_put_contents('post_data.log', print_r($_POST, true));
-	file_put_contents('files_data.log', print_r($_FILES, true));
-    if($check !== false) {
-        echo "file is image. - " . $check["mime"] . ".";
-        $uploadOk = 1;
-    } else {
-        echo "file is not image";
-        $uploadOk = 0;
-    }
+if ($contentLength > 0)
+{
+	// Content-Length 만큼 반복하여 읽기
+	while ($contentLength > 0)
+	{
+		// 읽을 바이트 수 결정
+		$readBytes = min(8192, $contentLength); // 한 번에 최대 8192 바이트 읽기
+		$data = fread($stdin, $readBytes);
+
+        if ($data === false)
+		{
+			break; // 읽기 실패 시 종료
+		}
+		$requestBody .= $data;
+		$contentLength -= strlen($data); // 남은 바이트 수 감소
+	}
 }
 
-// Check if file already exists
-if (file_exists($target_file)) {
-    echo "file already exist";
-    $uploadOk = 0;
+if ($data == false)
+	$result .= "read failed";
+
+preg_match('/boundary=(.*)$/', $_SERVER['CONTENT_TYPE'], $matches);
+$boundary = "--" . $matches[1];
+
+$parts = explode($boundary, $requestBody);
+
+array_pop($parts);
+
+foreach ($parts as $part)
+{
+	if ($part == "")
+		continue;
+	list($raw_headers, $body) = explode("\r\n\r\n", $part, 2);
+
+	// 헤더 파싱
+	$headers = [];
+	foreach (explode("\r\n", $raw_headers) as $header)
+	{
+		list($name, $value) = explode(': ', $header);
+		$headers[$name] = $value;
+	}
+
+	// Content-Disposition에서 filename을 추출
+	$match = preg_match('/filename="(.*)"/', $headers['Content-Disposition'], $filename_matches);
+	if ($match == 0)
+		$result .= "filename missed";
+	$filename = $filename_matches[1];
+
+	// 파일 내용을 저장
+	$file_handle = fopen($filename, 'w');
+	fwrite($file_handle, substr($body, 0, -2));
+	fclose($file_handle);
+
+	$result .= "File '{$filename}' uploaded successfully.";
 }
 
-// Check file size
-if ($_FILES["fileToUpload"]["size"] > 500000) {
-    echo "file is too big.";
-    $uploadOk = 0;
-}
-
-// Allow certain file formats
-// if($imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg"
-// && $imageFileType != "gif" ) {
-//     echo "only JPG, JPEG, PNG & GIF file allowed.";
-//     $uploadOk = 0;
-// }
-
-// Check if $uploadOk is set to 0 by an error
-if ($uploadOk == 0) {
-    echo "file is not uploaded.";
-// if everything is ok, try to upload file
-} else {
-    if (move_uploaded_file($_FILES["fileToUpload"]["tmp_name"], $target_file)) {
-        echo "file ". basename( $_FILES["fileToUpload"]["name"]). " is uploaded.";
-    } else {
-        echo "error during file upload.";
-    }
-}
+echo $result;
 ?>
