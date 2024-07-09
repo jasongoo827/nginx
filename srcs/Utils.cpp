@@ -211,10 +211,10 @@ namespace utils
 			trgt.erase(trgt.size() - 1);
 	}
 
-	int	hstoi(const std::string &trgt)
+	size_t	hstoi(const std::string &trgt)
 	{
 		const char *tmp_str = trgt.c_str();
-		int	cur_num = 0;
+		size_t	cur_num = 0;
 
 		while (*tmp_str != '\0')
 		{
@@ -241,18 +241,17 @@ namespace utils
 		return (cur_num);
 	}
 
-	int	ReadChunkSize(std::string &data)
+	size_t	ReadChunkSize(std::string &data)
 	{
 		std::string	tmp_str = DivideStrByCRLF(data);
-		int	size = 0;
-
+		size_t	size = 0;
 		if (tmp_str.empty())
 			return -1;
 		size = hstoi(tmp_str);
 		return size;
 	}
 
-	std::string	ReadData(std::string &data, int size)
+	std::string	ReadData(std::string &data, size_t size)
 	{
 		std::string	tmp_str = data.substr(0, size);
 		data.erase(0, size);

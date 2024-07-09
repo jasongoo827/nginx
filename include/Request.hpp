@@ -6,11 +6,12 @@
 
 enum Incomplete
 {
-	NO_ERROR,
-	STARTLINE,
-	WRONG_HEADER,
-	INVALID_CHUNK,
-	BODY_SIZE
+	READ_STARTLINE,
+	READ_HEADER,
+	READ_BODY,
+	READ_TRAILER,
+	READ_DONE,
+	BAD_REQUEST
 };
 
 class Request
@@ -28,6 +29,7 @@ public:
 	void								SetVersion(const std::string &version);
 	void								SetBody(const std::string &body);
 	void								SetStatus(enum Incomplete type);
+	void								SetBytesToRead(size_t bytes);
 
 	enum Method							GetMethod();
 	const std::string&					GetUrl();
@@ -35,6 +37,7 @@ public:
 	std::map<std::string, std::string>&	GetHeader();
 	const std::string&					GetBody();
 	enum Incomplete						GetStatus();
+	size_t								GetBytesToRead();
 	void								CutBody(ssize_t size);
 	const std::string					FindValueInHeader(const std::string &key);
 
@@ -45,6 +48,7 @@ private:
 	std::map<std::string, std::string>	header;
 	std::string							body;
 	enum Incomplete						status;
+	size_t								bytes_to_read;
 };
 
 #endif

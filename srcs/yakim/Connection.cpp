@@ -70,6 +70,12 @@ void	Connection::MainProcess(struct kevent& event)
 		ReadClient();
 		if (progress == END_CONNECTION)
 			return ;
+		if (progress == READ_CONTINUE)
+		{
+			progress = FROM_CLIENT;
+			return ;
+		}
+		// progress == readcontinue면 from_client로 바꾸고 리턴 -> 이벤트와 fd 유지하고 계속 읽기 가능!
 		std::cout << "read done";
 		MakeResponse();
 		response.CombineMessage();
@@ -123,6 +129,8 @@ void	Connection::ReadClient()
 		Parser	pars_buf(std::string(buffer, nread));
 		pars_buf.ParseStartline(request);
 		pars_buf.ParseHeader(request);
+		if (request.GetStatus() == READ_BODY && (request.GetMethod() == GET || request.GetMethod() == DELETE))
+			request.SetStatus(READ_DONE);
 		pars_buf.ParseBody(request);
 		pars_buf.ParseTrailer(request);
 		std::cout << "파싱 메시지\n";
@@ -132,6 +140,8 @@ void	Connection::ReadClient()
 			std::cout << it->first << ": \'" << it->second << "\'\n";
 		std::cout << '\'' << request.GetBody() << "\'\n";
 		std::cout << "status = " << request.GetStatus() << '\n';
+		if (request.GetStatus() != READ_DONE)
+			progress = READ_CONTINUE;
 		return ;
 	}
 }
@@ -140,7 +150,7 @@ void	Connection::MakeResponse()
 {
 	//request 유효성 검사
 	//http/1.1 인데 host 헤더가 없을 때
-	if (request.GetStatus() != 0)
+	if (request.GetStatus() == BAD_REQUEST)
 	{
 		response.make_response_40x(400);
 		progress = TO_CLIENT;

@@ -9,11 +9,12 @@ public:
 				Session();
 				~Session();
 
-	bool		CheckValidSession(std::string cli_cookie);
-	void		UpdateExpireTime();
-	std::string	&CreateSession();
-	void		AddSessionData(std::string file_name);
-	bool		CheckAuth(std::string file_name);
+	bool		CheckValidSession(std::string cli_cookie); // ALL METHOD 항상
+	void		UpdateExpireTime(); // check == true 일 때 ALL METHOD
+	void		CreateSession(); // Check == false 일 때 ALL METHOD
+	void		AddSessionData(std::string file_name); // POST
+	bool		CheckAuth(std::string file_name); // DELETE
+	std::string	&GetSendCookie(); // 헤더에 Cookie 정보 추가할 때 사용
 
 private:
 	std::string									send_cookie;

@@ -42,7 +42,8 @@ enum CurrentProgress
 	FROM_CGI,
 	FROM_FILE,
 	TO_CLIENT,
-	END_CONNECTION
+	END_CONNECTION,
+	READ_CONTINUE
 };
 
 #endif
