@@ -26,6 +26,7 @@ public:
 	Status								ParseErrorPage(std::string& str);
 	Status								ParseCgiType(std::string& str);
 	Status								ParseClientSize(std::string& str);
+	Status								ParseFilePath(std::string& str);
 	Status								ParseLocateVariable(std::string& str, std::istringstream& iss);
 	std::string							ExtractLocateBlock(std::istringstream& iss, std::string& first_line);
 	void								PrintServerInfo(void);
@@ -37,6 +38,7 @@ public:
 	const std::string& 					GetCgiType(void) const;
 	const ssize_t& 						GetPort(void) const;
 	const ssize_t& 						GetClientBodySize(void) const;
+	const std::string& 					GetFilePath(void) const;
 
 private:
 	std::vector<Locate>			locate_vec;
@@ -46,6 +48,7 @@ private:
 	std::string 				cgi_type; // 추후에 vector로 수정될 수 있음.
 	ssize_t						port;
 	ssize_t						client_body_size;
+	std::string					file_path;
 	int							dup_mask;
 };
 

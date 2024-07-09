@@ -5,7 +5,7 @@
 Locate::Locate(): autoindex(false), dup_mask(0) {}
 
 Locate::Locate(const Locate& other): locate_path(other.locate_path), method_vec(other.method_vec),
-index_vec(other.index_vec), redirect_pair(other.redirect_pair), root(other.root), file_path(other.file_path),
+index_vec(other.index_vec), redirect_pair(other.redirect_pair), root(other.root),
 autoindex(other.autoindex), dup_mask(other.dup_mask) {}
 
 Locate& Locate::operator=(const Locate& rhs)
@@ -17,7 +17,6 @@ Locate& Locate::operator=(const Locate& rhs)
 	index_vec = rhs.index_vec;
 	redirect_pair = rhs.redirect_pair;
 	root = rhs.root;
-	file_path = rhs.file_path;
 	autoindex = rhs.autoindex;
 	dup_mask = rhs.dup_mask;
 	return (*this);
@@ -54,8 +53,8 @@ Status Locate::ParseLocateBlock(std::string& locate_block)
 			status = ParseIndex(str);
 		else if (utils::find(str, "autoindex"))
 			status = ParseAutoIndex(str);
-		else if (utils::find(str, "filepath"))
-			status = ParseFilePath(str);
+		// else if (utils::find(str, "filepath"))
+		// 	status = ParseFilePath(str);
 		if (!status.ok())
 			return Status::Error("Parsing error");
 	}
@@ -133,15 +132,15 @@ Status	Locate::ParseAutoIndex(std::string& str)
 	return status;
 }
 
-Status	Locate::ParseFilePath(std::string& str)
-{
-	if (dup_mask & FILEPATH)
-		return Status::Error("filepath duplicate error");
-	dup_mask |= FILEPATH;
-	// if (status.ok() /*&& !utils::CheckFilePath(this->root)*/)
-	// 	return Status::Error("Parsing error");
-	return utils::ParseVariable(this->file_path, str);
-}
+// Status	Locate::ParseFilePath(std::string& str)
+// {
+// 	if (dup_mask & FILEPATH)
+// 		return Status::Error("filepath duplicate error");
+// 	dup_mask |= FILEPATH;
+// 	// if (status.ok() /*&& !utils::CheckFilePath(this->root)*/)
+// 	// 	return Status::Error("Parsing error");
+// 	return utils::ParseVariable(this->file_path, str);
+// }
 
 const std::string&	Locate::GetLocatePath(void) const
 {
@@ -168,10 +167,10 @@ const std::string& Locate::GetRoot(void) const
 	return root;
 }
 
-const std::string& Locate::GetFilePath(void) const
-{
-	return file_path;
-}
+// const std::string& Locate::GetFilePath(void) const
+// {
+// 	return file_path;
+// }
 
 bool Locate::GetAutoIndex(void) const
 {
@@ -203,6 +202,6 @@ void Locate::PrintLocateInfo(void)
 	std::cout << "autoindex ";
 	if (this->autoindex) std::cout << "ON\n";
 	else std::cout << "OFF\n";
-	std::cout << "filepath: " << this->file_path;
+	// std::cout << "filepath: " << this->file_path;
 	std::cout << '\n';
 }
