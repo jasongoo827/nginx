@@ -154,14 +154,9 @@ void	Response::CombineMessage()
 	{
 		ss << (*iter).first << ": " << (*iter).second << "\r\n";
 	}
-	if (!body.empty())
-	{
-		ss << "Content_length: " << body.size() << "\r\n";
-		ss << "\r\n";
-		ss << body;
-		ss << "\r\n";
-	}
+	ss << "Content-Length: " << body.size() << "\r\n";
 	ss << "\r\n";
+	ss << body;
 	message = ss.str();// stringstream 의 str 함수는 새롭게 string 객체를 복사해서 생성, 성능저하 이슈 있을수 있음.
 	message_size = message.size();
 }
@@ -188,6 +183,11 @@ void Response::AutoIndex(const std::string& path)
 
 	std::cout << "AutoIndex for path: " << path << "\n";
 	dirptr = opendir(path.c_str());
+	if (dirptr == NULL)
+	{
+		make_response_50x(403);
+		return ;
+	}
 	str << "<html>\r\n<head><title>Index of " << path.c_str() << "</title></head>\r\n";
 	str << "<body>\r\n<h1>Index of " << path.c_str() << "</h1><hr>\r\n<pre>";
 	while ((dp = readdir(dirptr)) != NULL)
@@ -205,7 +205,7 @@ void Response::AutoIndex(const std::string& path)
 		}
 		str << "\r\n";
 	}
-	str << "</pre><hr></body>\r\n</html>\r\n";
+	str << "</pre><hr></body>\r\n</html>";
 	body = str.str();
 	closedir(dirptr);
 }

@@ -131,7 +131,9 @@ void	Connection::ReadClient()
 		for (std::map<std::string, std::string>::iterator it = tmp_map.begin(); it != tmp_map.end(); ++it)
 			std::cout << it->first << ": \'" << it->second << "\'\n";
 		std::cout << '\'' << request.GetBody() << "\'\n";
+
 		std::cout << "status = " << request.GetStatus() << '\n';
+
 		return ;
 	}
 }
@@ -139,14 +141,13 @@ void	Connection::ReadClient()
 void	Connection::MakeResponse()
 {
 	//request 유효성 검사
-	//http/1.1 인데 host 헤더가 없을 때
 	if (request.GetStatus() != 0)
 	{
-		response.make_response_40x(400);
+		response.make_response_40x(405);
 		progress = TO_CLIENT;
 		return ;
 	}
-		
+	//http/1.1 인데 host 헤더가 없을 때
 	if (request.GetVersion() == "HTTP/1.1")
 	{
 		if (request.GetHeader().find("host") == request.GetHeader().end())
@@ -243,7 +244,8 @@ void	Connection::MakeResponse()
 	//filepath 만들기
 	path = "";
 	path += locate_ptr->GetRoot();
-	path += request.GetUrl().substr();
+	path += "/";
+	path += request.GetUrl().substr(locate_ptr->GetLocatePath().size());
 	std::cout << "path: " << path << "\n";
 	
 
@@ -282,10 +284,16 @@ void	Connection::ProcessDir()
 	if (stat(path.c_str(), &buf) == -1)
 	{
 		std::cout << "path: " << path << "\n";
-		std::cout << "readdir failed\n";
+		std::cout << "file not exist\n";
 		response.make_response_40x(404);
 		progress = TO_CLIENT;
 		return;
+	}
+	if ((buf.st_mode & R_OK) == 0)
+	{
+		response.make_response_40x(403);
+		progress = TO_CLIENT;
+		return ;
 	}
 	//check if default index file exist
 	if (!locate_ptr->GetIndexVec().empty())
@@ -362,8 +370,8 @@ void	Connection::SendMessage()
 {
 	const std::string &buffer = response.GetMessage();
 	std::cout << "---------message-------------\n";
-	std::cout << response.GetMessage() << "\n";
-	std::cout << "---------message-------------\n";
+	std::cout << response.GetMessage();
+	std::cout << "---------message end-------------\n";
 	std::cout << "messagesize: " << buffer.size() << "\n";
 	ssize_t send_size = write(client_socket_fd, buffer.data(), buffer.size());
 	std::cout << "send_size = " << send_size << "\n";
@@ -397,6 +405,7 @@ void	Connection::ProcessCgi()
 	{
 		std::cout << "cannot find path\n";
 		response.make_response_40x(404);
+		progress = TO_CLIENT;
 		return ;
 	}
 	//환경변수 설정
@@ -408,7 +417,7 @@ void	Connection::ProcessCgi()
 	std::cout << "pipe setup done\n";
 
 	//cgi 실행
-	if (cgi.CgiExec().ok())
+	if (cgi.CgiExec(path).ok())
 	{
 		pipein = cgi.GetPipeIn();
 		pipeout = cgi.GetPipeOut();
@@ -515,6 +524,11 @@ enum CurrentProgress		Connection::GetProgress()
 	return progress;
 }
 
+void		Connection::SetProgress(enum CurrentProgress progress)
+{
+	this->progress = progress;
+}
+
 int		Connection::GetFileFd()
 {
 	return file_fd;
@@ -527,4 +541,9 @@ int		Connection::GetPipein()
 int		Connection::GetPipeout()
 {
 	return pipeout;
+}
+
+std::time_t		Connection::GetTimeval()
+{
+	return timeval;
 }

@@ -18,7 +18,7 @@ public:
 
 	void	setEnv(Request& req, const Server& ser);
 	Status	setPipe();
-	Status	CgiExec();
+	Status	CgiExec(std::string& path);
 	void	makeEnvp();
 
 

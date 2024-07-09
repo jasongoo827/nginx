@@ -303,6 +303,18 @@ namespace utils
 		}
 		return (true);
 	}
+
+	std::string	MethodToString(enum Method method)
+	{
+		if (method == GET)
+			return "get";
+		else if (method == POST)
+			return "post";
+		else if (method == DELETE)
+			return "delete";
+		else
+			return "other";
+	}
 }
 
 bool	operator==(const sockaddr_in& lhs, const sockaddr_in& rhs)

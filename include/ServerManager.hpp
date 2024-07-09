@@ -35,6 +35,10 @@ public:
 	void					RemoveWriteEvent(int client_socket_fd);
 	void					AddReadEvent(int fd);
 	void					RemoveReadEvent(int fd);
+	void					CheckConnectionTimeout();
+	void					AfterProcess(Connection* connection);
+
+
 
 	void					managerstatus();
 

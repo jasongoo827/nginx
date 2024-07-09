@@ -10,6 +10,7 @@
 # include <sys/stat.h>
 # include <ctime>
 # include "Status.hpp"
+# include "Enum.hpp"
 
 // Svr Include
 # include <fcntl.h>
@@ -48,6 +49,7 @@ namespace utils
 	bool						CheckHostDup(std::string &header_name, std::map<std::string, std::string> &request_header);
 	void						SplitHeaderData(std::string &data, std::string &name, std::string &value);
 	bool						SetNonBlock(int &sock_trgt);
+	std::string					MethodToString(enum Method method);
 }
 
 #endif
