@@ -143,23 +143,23 @@ void	Response::AddBasicHeader()
 	header["Connection"] = "close";
 }
 
-void	Response::AddCookieHeader()
-{
-	// request에 Cookie 있는지 확인 -> 밖에서 확인
+// void	Response::AddCookieHeader()
+// {
+// 	// request에 Cookie 있는지 확인 -> 밖에서 확인
 	
-	// 있으면 해당 쿠키가 갖고 있는 data field 리턴
-	// key=value; expire; Path =/; HttpOnly;
+// 	// 있으면 해당 쿠키가 갖고 있는 data field 리턴
+// 	// key=value; expire; Path =/; HttpOnly;
 
-	// 없으면 key=value pair 생성, 나머지 값들도 생성;
-	// value는 현재 시간은 ms로 받아와서 생성
+// 	// 없으면 key=value pair 생성, 나머지 값들도 생성;
+// 	// value는 현재 시간은 ms로 받아와서 생성
 
-	// Response header에 set-cookie 추가 - userId = ""
-	// SessionID
-	header["set-cookie"] = GenerateCookie();
+// 	// Response header에 set-cookie 추가 - userId = ""
+// 	// SessionID
+// 	header["set-cookie"] = GenerateCookie();
 
-	// session cookie는 expire 설정 X
-	// cookie는 expire 설정 해주면 브라우저에서 알아서 처리
-}
+// 	// session cookie는 expire 설정 X
+// 	// cookie는 expire 설정 해주면 브라우저에서 알아서 처리
+// }
 
 // std::string Response::GenerateCookie(void)
 // {

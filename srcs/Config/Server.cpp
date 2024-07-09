@@ -6,7 +6,7 @@ Server::Server(): dup_mask(0) {}
 
 Server::Server(const Server& other): locate_vec(other.locate_vec), error_page(other.error_page),
 host_ip(other.host_ip), server_name(other.server_name), cgi_type(other.cgi_type), port(other.port),
-client_body_size(other.client_body_size), dup_mask(other.dup_mask) {}
+client_body_size(other.client_body_size), file_path(other.file_path), dup_mask(other.dup_mask) {}
 
 Server& Server::operator=(const Server& rhs)
 {
@@ -19,6 +19,7 @@ Server& Server::operator=(const Server& rhs)
 	cgi_type = rhs.cgi_type;
 	port = rhs.port;
 	client_body_size = rhs.client_body_size;
+	file_path = rhs.file_path;
 	dup_mask = rhs.dup_mask;
 	return (*this);
 }
@@ -54,6 +55,8 @@ Status Server::ParseServerBlock(std::string& server_block)
 			status = ParseCgiType(str);
 		else if (utils::find(str, "client_body_size"))
 			status = ParseClientSize(str);
+		else if (utils::find(str, "filepath"))
+			status = ParseFilePath(str);
 		else if (utils::find(str, "location"))
 			status = ParseLocateVariable(str, iss);
 		if (!status.ok())
@@ -126,6 +129,16 @@ Status	Server::ParseClientSize(std::string& str)
 	return status;
 }
 
+Status	Server::ParseFilePath(std::string& str)
+{
+	if (dup_mask & FILEPATH)
+		return Status::Error("filepath duplicate error");
+	dup_mask |= FILEPATH;
+	// if (status.ok() /*&& !utils::CheckFilePath(this->root)*/)
+	// 	return Status::Error("Parsing error");
+	return utils::ParseVariable(this->file_path, str);
+}
+
 Status	Server::ParseLocateVariable(std::string& str, std::istringstream& iss)
 {
 	std::string locate_block = ExtractLocateBlock(iss, str);
@@ -196,6 +209,11 @@ const ssize_t& Server::GetClientBodySize(void) const
 	return client_body_size;
 }
 
+const std::string& Server::GetFilePath(void) const
+{
+	return file_path;
+}
+
 void Server::PrintServerInfo(void)
 {
 	std::cout << "\nSERVER INFO" << '\n';
@@ -205,6 +223,7 @@ void Server::PrintServerInfo(void)
 		std::cout << "error_page: " << it->first << "  " << it->second << '\n';
 	std::cout << "client_body_size: " << this->client_body_size << '\n';
 	std::cout << "cgi type: " << this->cgi_type << '\n';
+	std::cout << "filepath: " << this->file_path;
 	for (size_t i = 0; i < this->locate_vec.size(); ++i)
 		this->locate_vec[i].PrintLocateInfo();
 	std::cout << '\n';

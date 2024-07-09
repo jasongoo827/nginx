@@ -43,7 +43,7 @@ private:
 	std::vector<std::string> 	index_vec;
 	std::pair<int, std::string> redirect_pair;
 	std::string					root;
-	std::string 				file_path;
+	// std::string 				file_path;
 	bool						autoindex;
 	int							dup_mask;
 };
