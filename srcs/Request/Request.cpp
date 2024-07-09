@@ -1,8 +1,8 @@
 #include "Request.hpp"
 
-Request::Request(): status(NO_ERROR){};
+Request::Request(): status(READ_STARTLINE), bytes_to_read(0){};
 
-Request::Request(const Request &copy) : method(copy.method), url(copy.url), version(copy.version), header(copy.header), body(copy.body), status(copy.status){};
+Request::Request(const Request &copy) : method(copy.method), url(copy.url), version(copy.version), header(copy.header), body(copy.body), status(copy.status), bytes_to_read(copy.bytes_to_read){};
 
 Request& Request::operator=(const Request &rhs)
 {
@@ -14,6 +14,7 @@ Request& Request::operator=(const Request &rhs)
 	this->header = rhs.header;
 	this->body = rhs.body;
 	this->status = rhs.status;
+	this->bytes_to_read = rhs.bytes_to_read;
 	return *this;
 };
 
@@ -50,6 +51,9 @@ void	Request::SetStatus(enum Incomplete type)
 {
 	this->status = type;
 };
+void	Request::SetBytesToRead(size_t bytes){
+	this->bytes_to_read = bytes;
+}
 
 enum Method	Request::GetMethod()
 {
@@ -85,6 +89,10 @@ enum Incomplete	Request::GetStatus()
 {
 	return this->status;
 };
+
+size_t	Request::GetBytesToRead(){
+	return this->bytes_to_read;
+}
 
 const std::string	Request::FindValueInHeader(const std::string &key)
 {

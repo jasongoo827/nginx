@@ -5,7 +5,7 @@
 #include "Request.hpp"
 #include "Connection.hpp"
 #include "Utils.hpp"
-#include "monitor.hpp"
+// #include "monitor.hpp"
 #include <iostream>
 
 ServerManager::ServerManager()
@@ -33,7 +33,6 @@ bool		ServerManager::RunServer(Config* config)
 {
 	struct kevent				change_event;
 	struct kevent				events[20]; /* config에서 파싱 가능하다면 동적 할당 방식으로 변경해야함 */
-	// Monitor 					monitor;
 
 	while(true)
 	{

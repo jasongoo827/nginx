@@ -49,6 +49,7 @@ private:
 	ServerManager& operator=(const ServerManager& ref);
 	std::map<int, Connection*>				connectionmap;
 	std::vector<Connection*>				v_connection;
+	std::vector<std::string>				v_session; // 
 	int										kq;
 	int										event_count;
 	int										sock_serv;
