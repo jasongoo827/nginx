@@ -97,7 +97,7 @@ bool		ServerManager::RunServer(Config* config)
 					}
 					Connection* connection = connectionmap[static_cast<int>(events[i].ident)];
 					std::cout << "socket_fd: " << connection->GetClientSocketFd() << '\n';
-					connection->MainProcess(events[i]);
+					connection->MainProcess(events[i], session);
 					AfterProcess(connection);
 				}
 			}

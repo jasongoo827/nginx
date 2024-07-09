@@ -11,6 +11,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <cstdlib>
+#include <Session.hpp>
 
 Connection::Connection(int clinet_socket_fd, sockaddr_in client_socket_addr, Config* config_ptr)
 : request(), response(), cgi()
@@ -60,7 +61,7 @@ Connection&	Connection::operator=(const Connection& ref)
 
 
 
-void	Connection::MainProcess(struct kevent& event)
+void	Connection::MainProcess(struct kevent& event, Session& session)
 {
 	std::cout << "progress: " << progress << " event.filter: " << event.filter << "\n";
 	std::cout << "MainProcess for fd: " << client_socket_fd << "\n";
@@ -77,7 +78,10 @@ void	Connection::MainProcess(struct kevent& event)
 		}
 		// progress == readcontinue면 from_client로 바꾸고 리턴 -> 이벤트와 fd 유지하고 계속 읽기 가능!
 		std::cout << "read done";
+		if (!session.CheckValidSession(this->GetRequest().FindValueInHeader("cookie")))
+			session.CreateSession();
 		MakeResponse();
+		response.AddHeader("set-cookie", session.GetSendCookie());
 		response.CombineMessage();
 		return ;
 	}
@@ -556,3 +560,9 @@ std::time_t		Connection::GetTimeval()
 {
 	return timeval;
 }
+
+Request&	Connection::GetRequest()
+{
+	return request;
+}
+

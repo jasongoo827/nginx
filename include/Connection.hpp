@@ -11,6 +11,7 @@
 # include <sys/event.h>
 # include <ctime>
 
+class Session;
 
 class Connection
 {
@@ -20,7 +21,7 @@ public:
 	~Connection();
 	Connection& operator=(const Connection& ref);
 
-	void						MainProcess(struct kevent& event);
+	void						MainProcess(struct kevent& event, Session& session);
 	void						ReadClient();
 	void						MakeResponse();
 	void						ProcessDir();
@@ -38,6 +39,7 @@ public:
 	enum CurrentProgress		GetProgress();
 	int							GetFileFd();
 	std::time_t					GetTimeval();
+	Request&					GetRequest();
 	void						SetProgress(enum CurrentProgress progress);
 
 private:
