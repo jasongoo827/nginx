@@ -28,6 +28,8 @@ void	Request::SetMethod(std::string method)
 		this->method = POST;
 	else if (method == "DELETE")
 		this->method = DELETE;
+	else if (method == "")
+		this->method = EMPTY;
 	else
 		this->method = OTHER;
 }
@@ -51,7 +53,7 @@ void	Request::SetStatus(enum Incomplete type)
 {
 	this->status = type;
 };
-void	Request::SetBytesToRead(size_t bytes){
+void	Request::SetBytesToRead(int bytes){
 	this->bytes_to_read = bytes;
 }
 
@@ -90,7 +92,7 @@ enum Incomplete	Request::GetStatus()
 	return this->status;
 }
 
-size_t	Request::GetBytesToRead(){
+int	Request::GetBytesToRead(){
 	return this->bytes_to_read;
 }
 

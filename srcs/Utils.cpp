@@ -221,7 +221,7 @@ namespace utils
 			trgt.erase(trgt.size() - 1);
 	}
 
-	size_t	hstoi(const std::string &trgt)
+	int	hstoi(const std::string &trgt)
 	{
 		const char *tmp_str = trgt.c_str();
 		size_t	cur_num = 0;
@@ -233,7 +233,7 @@ namespace utils
 			('a' <= *tmp_str && *tmp_str <= 'f'))
 			{
 				cur_num *= 16;
-				if (cur_num > 1000000)
+				if (cur_num > 10000000)
 					return (-1);
 				if (std::isdigit(*tmp_str))
 					cur_num += *tmp_str - 48;
@@ -251,10 +251,10 @@ namespace utils
 		return (cur_num);
 	}
 
-	size_t	ReadChunkSize(std::string &data)
+	int	ReadChunkSize(std::string &data)
 	{
 		std::string	tmp_str = DivideStrByCRLF(data);
-		size_t	size = 0;
+		int	size = 0;
 		if (tmp_str.empty())
 			return -1;
 		size = hstoi(tmp_str);

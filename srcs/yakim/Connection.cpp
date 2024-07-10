@@ -129,31 +129,54 @@ void	Connection::ReadClient()
 	std::cout << client_socket_fd << "\n";
 	ssize_t				nread = read(client_socket_fd, buffer, sizeof(buffer));
 
-	if (nread <= 0)
+	if (nread > 0)
 	{
-		progress = END_CONNECTION;
+		std::string &parse_data = parser.GetData();
+		parse_data = parse_data + std::string(buffer, nread);
+		std::cout << "\n\n원본 메시지 토탈\n" << parse_data;
+		for (ssize_t i = 0; i < nread; i++)
+		{
+			std::cout << "\n이번 메시지 끝문자 : " << (int)buffer[i];
+		}
+		std::cout << "\n데이터 길이 : " << nread << '\n';
+		std::cout << "이번 읽기 대상\n";
+		if (request.GetStatus() == READ_STARTLINE)
+			std::cout << "READ_STARTLINE\n";
+		if (request.GetStatus() == READ_HEADER)
+			std::cout << "READ_HEADER\n";
+		if (request.GetStatus() == READ_BODY)
+			std::cout << "READ_BODY\n";
+		if (request.GetStatus() == READ_TRAILER)
+			std::cout << "READ_TRAILER\n";
+		if (parse_data.find("\r\n") != std::string::npos)
+			parser.ParseStartline(request);
+		std::cout << request.GetMethod() << '\n';
+		if (parse_data.find("\r\n\r\n") != std::string::npos)
+		{
+			parser.ParseHeader(request);
+			std::cout << "CRLFCRLF FOUND\n";
+		}
+		parser.ParseBody(request);
+		parser.ParseTrailer(request);
+		if (request.GetStatus() != READ_DONE && request.GetStatus() != BAD_REQUEST)
+			progress = READ_CONTINUE;
+		else
+		{
+			std::cout << "파싱 메시지\n";
+			std::cout << request.GetMethod() << " " << request.GetUrl() << " " << request.GetVersion() << '\n';
+			std::map<std::string, std::string> tmp_map = request.GetHeader();
+			for (std::map<std::string, std::string>::iterator it = tmp_map.begin(); it != tmp_map.end(); ++it)
+				std::cout << it->first << ": \'" << it->second << "\'\n";
+			std::cout << '\'' << request.GetBody() << "\'\n";
+
+			std::cout << "status = " << request.GetStatus() << '\n';
+		}
 		return ;
 	}
 	else
 	{
-		// std::cout << "\n\n원본 메시지\n" << std::string(buffer, nread) << "\n\n\n";
-		Parser	pars_buf(std::string(buffer, nread));
-		pars_buf.ParseStartline(request);
-		pars_buf.ParseHeader(request);
-		if (request.GetStatus() == READ_BODY && (request.GetMethod() == GET || request.GetMethod() == DELETE))
-			request.SetStatus(READ_DONE);
-		pars_buf.ParseBody(request);
-		pars_buf.ParseTrailer(request);
-		std::cout << "파싱 메시지\n";
-		std::cout << request.GetMethod() << " " << request.GetUrl() << " " << request.GetVersion() << '\n';
-		std::map<std::string, std::string> tmp_map = request.GetHeader();
-		for (std::map<std::string, std::string>::iterator it = tmp_map.begin(); it != tmp_map.end(); ++it)
-			std::cout << it->first << ": \'" << it->second << "\'\n";
-		std::cout << '\'' << request.GetBody() << "\'\n";
-
-		std::cout << "status = " << request.GetStatus() << '\n';
-		if (request.GetStatus() != READ_DONE)
-			progress = READ_CONTINUE;
+		
+		progress = END_CONNECTION;
 		return ;
 	}
 }
@@ -225,7 +248,7 @@ void	Connection::MakeResponse()
 	if (request.GetMethod() == OTHER)
 	{
 		std::cout << "method not defined\n";
-		response.make_response_50x(501);
+		response.make_response_40x(405);
 		progress = TO_CLIENT;
 		return ;
 	}

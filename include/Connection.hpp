@@ -11,8 +11,10 @@
 # include <sys/event.h>
 # include <ctime>
 # include "Session.hpp"
+# include "Parser.hpp"
 
 class Session;
+class Parser;
 
 class Connection
 {
@@ -48,6 +50,7 @@ private:
 	int						client_socket_fd;
 	struct sockaddr_in		client_socket_addr;
 	std::string				path;
+	Parser					parser;
 	Request					request;
 	Response				response;
 	Cgi						cgi;

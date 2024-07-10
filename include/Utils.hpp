@@ -44,8 +44,8 @@ namespace utils
 	std::string					DivideStrByCRLF(std::string &data);
 	std::string					DivideStrBySpace(std::string &data);
 	void						TrimSpaceTap(std::string &trgt);
-	size_t						hstoi(const std::string &trgt);
-	size_t						ReadChunkSize(std::string &data);
+	int							hstoi(const std::string &trgt);
+	int							ReadChunkSize(std::string &data);
 	std::string					ReadData(std::string &data, size_t size);
 	bool						CheckNameChar(std::string &data);
 	bool						CheckHostDup(std::string &header_name, std::map<std::string, std::string> &request_header);
