@@ -16,7 +16,7 @@ bool	Session::CheckValidSession(std::string cli_cookie)
 	SetHashCookie(cookie);
 	if (expire_time.find(hash_cookie) == expire_time.end())
 		return (false);
-	if (cur_time - expire_time[hash_cookie] > 9000000)
+	if (cur_time - expire_time[hash_cookie] > 900000000)
 	{
 		sessions.erase(sessions.find(hash_cookie));
 		expire_time.erase(expire_time.find(hash_cookie));

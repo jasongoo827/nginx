@@ -77,14 +77,16 @@ void	Parser::ParseBody(Request &request)
 			int	cur_size = request.GetBytesToRead();
 			if (cur_size == 0)
 				cur_size = utils::ReadChunkSize(data);
+			std::cout << '\n' << cur_size << '\n';
 			while (cur_size > 0)
 			{
-				if (data_size > 10000000 || cur_size > 10000000)
+				if (data_size > 150000000 || cur_size > 10000000)
 				{
 					request.SetStatus(BAD_REQUEST);
 					return ;
 				}
 				tmp_str = utils::ReadData(data, cur_size);
+				std::cout << "tmp_str : \n" << tmp_str << '\n';
 				data_size += cur_size;
 				body += tmp_str;
 				if (tmp_str.size() != static_cast<size_t>(cur_size))
@@ -102,7 +104,7 @@ void	Parser::ParseBody(Request &request)
 			if (request.GetBytesToRead() == 0)
 				request.SetBytesToRead(std::atoi(request.FindValueInHeader("content-length").c_str()));
 			data_size = request.GetBytesToRead();
-			if (request.FindValueInHeader("content-length").empty() || data_size < 0 || 10000000 < data_size)
+			if (request.FindValueInHeader("content-length").empty() || data_size < 0 || 150000000 < data_size)
 			{
 				request.SetStatus(BAD_REQUEST);
 				return ;

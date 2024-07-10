@@ -63,6 +63,7 @@ private:
 	int						pipeout;
 	std::time_t				timeval;
 	Session					*session;
+	int						total_len;
 };
 
 #endif

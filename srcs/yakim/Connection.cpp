@@ -25,6 +25,7 @@ Connection::Connection(int clinet_socket_fd, sockaddr_in client_socket_addr, Con
 	this->pipeout = 0;
 	std::time(&timeval);
 	this->session = session;
+	this->total_len = 0;
 }
 
 Connection::Connection(const Connection& ref)
@@ -133,13 +134,14 @@ void	Connection::ReadClient()
 	{
 		std::string &parse_data = parser.GetData();
 		parse_data = parse_data + std::string(buffer, nread);
-		std::cout << "\n\n원본 메시지 토탈\n" << parse_data;
-		for (ssize_t i = 0; i < nread; i++)
-		{
-			std::cout << "\n이번 메시지 끝문자 : " << (int)buffer[i];
-		}
+		// std::cout << "\n\n원본 메시지 토탈\n" << parse_data;
+		// for (ssize_t i = 0; i < nread; i++)
+		// {
+		// 	std::cout << "\n이번 메시지 끝문자 : " << (int)buffer[i];
+		// }
 		std::cout << "\n데이터 길이 : " << nread << '\n';
 		std::cout << "이번 읽기 대상\n";
+		total_len += nread;
 		if (request.GetStatus() == READ_STARTLINE)
 			std::cout << "READ_STARTLINE\n";
 		if (request.GetStatus() == READ_HEADER)
@@ -158,18 +160,20 @@ void	Connection::ReadClient()
 		}
 		parser.ParseBody(request);
 		parser.ParseTrailer(request);
+		std::cout << "TRAILER? status : " << request.GetStatus() << '\n';
 		if (request.GetStatus() != READ_DONE && request.GetStatus() != BAD_REQUEST)
 			progress = READ_CONTINUE;
 		else
 		{
-			std::cout << "파싱 메시지\n";
-			std::cout << request.GetMethod() << " " << request.GetUrl() << " " << request.GetVersion() << '\n';
-			std::map<std::string, std::string> tmp_map = request.GetHeader();
-			for (std::map<std::string, std::string>::iterator it = tmp_map.begin(); it != tmp_map.end(); ++it)
-				std::cout << it->first << ": \'" << it->second << "\'\n";
-			std::cout << '\'' << request.GetBody() << "\'\n";
+			std::cout << "\n총 파싱 데이터 len : " << total_len << '\n';
+			// std::cout << "파싱 메시지\n";
+			// std::cout << request.GetMethod() << " " << request.GetUrl() << " " << request.GetVersion() << '\n';
+			// std::map<std::string, std::string> tmp_map = request.GetHeader();
+			// for (std::map<std::string, std::string>::iterator it = tmp_map.begin(); it != tmp_map.end(); ++it)
+			// 	std::cout << it->first << ": \'" << it->second << "\'\n";
+			// std::cout << '\'' << request.GetBody() << "\'\n";
 
-			std::cout << "status = " << request.GetStatus() << '\n';
+			// std::cout << "status = " << request.GetStatus() << '\n';
 		}
 		return ;
 	}
@@ -205,14 +209,14 @@ void	Connection::MakeResponse()
 	//request에 맞는 server 찾기
 	server_ptr = &config_ptr->GetServerVec().front();
 	std::cout << server_ptr << "\n";
-	// for (std::vector<const Server>::iterator iter = config_ptr->GetServerVec().begin(); iter != config_ptr->GetServerVec().end(); iter++)
-	// {
-	// 	if (std::find(request.GetHeader().begin(), request.GetHeader().end(), iter->GetServerName()) != request.GetHeader().end())
-	// 	{
-	// 		server_ptr = &(*iter);
-	// 		break ;
-	// 	}
-	// }
+	for (size_t i = 0; i < config_ptr->GetServerVec().size(); i++)
+	{
+		if (request.GetHeader()["host"] == config_ptr->GetServerVec()[i].GetServerName())
+		{
+			server_ptr = &config_ptr->GetServerVec()[i];
+			break ;
+		}
+	}
 
 	//request에 맞는 location 찾기
 	locate_ptr = NULL;
@@ -288,7 +292,8 @@ void	Connection::MakeResponse()
 	//path 만들기
 	path = "";
 	path += locate_ptr->GetRoot();
-	path += "/";
+	if (locate_ptr->GetLocatePath() == "/")
+		path += "/";
 	path += request.GetUrl().substr(locate_ptr->GetLocatePath().size());
 	std::cout << "path: " << path << "\n";
 	
@@ -335,6 +340,7 @@ void	Connection::ProcessDir()
 	}
 	if ((buf.st_mode & R_OK) == 0)
 	{
+		std::cout << "file cant read\n";
 		response.make_response_40x(403);
 		progress = TO_CLIENT;
 		return ;
@@ -356,6 +362,7 @@ void	Connection::ProcessDir()
 				ProcessFile();
 				return ;
 			}
+			std::cout << "cant stat indexpath: " << temp << "\n";
 		}
 	}
 	//check if autoindex is on
@@ -367,7 +374,7 @@ void	Connection::ProcessDir()
 	}
 	else
 	{
-		response.make_response_40x(403);
+		response.make_response_40x(404);
 		progress = TO_CLIENT;
 		return ;
 	}
@@ -399,7 +406,6 @@ void	Connection::ProcessFile()
 		if (session->CheckAuth(path.substr(path.rfind('/') + 1)) == true)
 		{
 			std::cout << "test : auth\n";
-			path.pop_back();
 			std::remove(path.c_str());
 			response.SetStatus(202);
 		}

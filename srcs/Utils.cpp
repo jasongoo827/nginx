@@ -253,11 +253,18 @@ namespace utils
 
 	int	ReadChunkSize(std::string &data)
 	{
-		std::string	tmp_str = DivideStrByCRLF(data);
+		std::string	res = "";
+		size_t pos = data.find("\r\n\r\n");
+		if (pos != std::string::npos)
+		{
+			res = data.substr(0, pos);
+			data.erase(0, pos + 4);
+		}
+		std::cout << "res : " << res << '\n';
 		int	size = 0;
-		if (tmp_str.empty())
+		if (res.empty())
 			return -1;
-		size = hstoi(tmp_str);
+		size = hstoi(res);
 		return size;
 	}
 
