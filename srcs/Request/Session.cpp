@@ -8,15 +8,22 @@ bool	Session::CheckValidSession(std::string cli_cookie)
 {
 	size_t	cur_time = GetTimeMicro();
 
-	SetHashCookie(cli_cookie);
+	size_t	pos = cli_cookie.find('=');
+	if (pos == std::string::npos)
+		return (false);
+	std::string	cookie = cli_cookie.substr(cli_cookie.find('=') + 1);
+	std::cout << "\n\n" << cookie << "\n\n";
+	SetHashCookie(cookie);
 	if (expire_time.find(hash_cookie) == expire_time.end())
 		return (false);
-	if (cur_time - expire_time[hash_cookie] > 900000000)
+	if (cur_time - expire_time[hash_cookie] > 9000000)
 	{
-		sessions[hash_cookie].clear();
-		sessions.erase(hash_cookie);
+		sessions.erase(sessions.find(hash_cookie));
+		expire_time.erase(expire_time.find(hash_cookie));
 		return (false);
 	}
+	send_cookie = cookie;
+	SetSendCookie();
 	return (true);
 }
 
@@ -78,6 +85,17 @@ void	Session::GenerateCookie()
 		send_cookie = ss.str();
 		SetHashCookie(send_cookie);
 	}
+	SetSendCookie();
+}
+
+void	Session::SetSendCookie()
+{
+	send_cookie = "cookieid=" + send_cookie;
+	send_cookie += "; expires=";
+	send_cookie += utils::getExpireTime();
+	send_cookie += "; path=/; HttpOnly";
+
+	UpdateExpireTime();
 }
 
 void	Session::SetHashCookie(std::string &cli_cookie_str)

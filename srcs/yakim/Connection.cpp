@@ -11,9 +11,13 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <cstdlib>
+<<<<<<< HEAD
 #include <cstdio>
+=======
+#include <Session.hpp>
+>>>>>>> c1d544cf19625acd4c603e0ccc1706cdc72de650
 
-Connection::Connection(int clinet_socket_fd, sockaddr_in client_socket_addr, Config* config_ptr)
+Connection::Connection(int clinet_socket_fd, sockaddr_in client_socket_addr, Config* config_ptr, Session* session)
 : request(), response(), cgi()
 {
 	this->client_socket_fd = clinet_socket_fd;
@@ -24,6 +28,7 @@ Connection::Connection(int clinet_socket_fd, sockaddr_in client_socket_addr, Con
 	this->pipein = 0;
 	this->pipeout = 0;
 	std::time(&timeval);
+	this->session = session;
 }
 
 Connection::Connection(const Connection& ref)
@@ -37,6 +42,7 @@ Connection::Connection(const Connection& ref)
 	this->pipein = ref.pipein;
 	this->pipeout = ref.pipeout;
 	this->timeval = ref.timeval;
+	this->session = ref.session;
 }
 
 Connection::~Connection()
@@ -56,6 +62,7 @@ Connection&	Connection::operator=(const Connection& ref)
 	this->timeval = ref.timeval;
 	this->request = ref.request;
 	this->cgi = ref.cgi;
+	this->session = ref.session;
 	return (*this);
 }
 
@@ -77,8 +84,10 @@ void	Connection::MainProcess(struct kevent& event)
 			return ;
 		}
 		// progress == readcontinue면 from_client로 바꾸고 리턴 -> 이벤트와 fd 유지하고 계속 읽기 가능!
-		std::cout << "read done";
+		if (!session->CheckValidSession(this->GetRequest().FindValueInHeader("cookie")))
+			session->CreateSession();
 		MakeResponse();
+		response.AddHeader("set-cookie", session->GetSendCookie());
 		response.CombineMessage();
 		return ;
 	}
@@ -101,8 +110,13 @@ void	Connection::MainProcess(struct kevent& event)
 	}
 	else if (progress == TO_CLIENT && event.filter == EVFILT_WRITE)
 	{
-		// 여기서 쿠키 관련 작업?
 		std::cout << "SendMessage\n";
+		size_t	trgt_pos = response.GetBody().find("Trgt=");
+		if (trgt_pos != std::string::npos && request.GetMethod() == POST)
+		{
+			session->AddSessionData(response.GetBody().substr(trgt_pos + 5));
+			std::cout << "auth data added: " << response.GetBody().substr(trgt_pos + 5) << '\n';
+		}
 		SendMessage();
 		return ;
 	}
@@ -363,10 +377,20 @@ void	Connection::ProcessFile()
 	}
 	if (request.GetMethod() == DELETE)
 	{
+<<<<<<< HEAD
 		DeleteFile();
 		return ;
 	}
 
+=======
+		if (session->CheckAuth(path.substr(path.rfind('/') + 1)) == true)
+			std::cout << "test : auth\n";
+		else
+			std::cout << "test : no auth\n";
+		progress = TO_CLIENT;
+		return ;
+	}
+>>>>>>> c1d544cf19625acd4c603e0ccc1706cdc72de650
 	file_fd = open(path.c_str(), std::ios::binary);
 	if (file_fd == -1)
 	{
@@ -573,3 +597,9 @@ std::time_t		Connection::GetTimeval()
 {
 	return timeval;
 }
+
+Request&	Connection::GetRequest()
+{
+	return request;
+}
+

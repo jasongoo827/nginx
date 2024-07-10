@@ -40,6 +40,7 @@ namespace utils
 	double						strtod(std::string& s);
 	ssize_t 					stoi(std::string& s);
 	std::string					getTime();
+	std::string					getExpireTime();
 	std::string					DivideStrByCRLF(std::string &data);
 	std::string					DivideStrBySpace(std::string &data);
 	void						TrimSpaceTap(std::string &trgt);

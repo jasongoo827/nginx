@@ -130,7 +130,7 @@ Status	Cgi::CgiExec(std::string& path)
 		close(pipe_out[0]);
 		close(pipe_out[1]);
 		char* executable = new char[path.size() + 1];
-    	std::strcpy(executable, path.c_str());
+		std::strcpy(executable, path.c_str());
 
 		char* argv[2];
 		argv[0] = executable;

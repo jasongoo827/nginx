@@ -143,54 +143,50 @@ void	Response::AddBasicHeader()
 	header["Connection"] = "close";
 }
 
-void	Response::AddCookieHeader()
-{
-	// request에 Cookie 있는지 확인 -> 밖에서 확인
+// void	Response::AddCookieHeader()
+// {
+// 	// request에 Cookie 있는지 확인 -> 밖에서 확인
 	
-	// 있으면 해당 쿠키가 갖고 있는 data field 리턴
-	// key=value; expire; Path =/; HttpOnly;
+// 	// 있으면 해당 쿠키가 갖고 있는 data field 리턴
+// 	// key=value; expire; Path =/; HttpOnly;
 
-	// 없으면 key=value pair 생성, 나머지 값들도 생성;
-	// value는 현재 시간은 ms로 받아와서 생성
+// 	// 없으면 key=value pair 생성, 나머지 값들도 생성;
+// 	// value는 현재 시간은 ms로 받아와서 생성
 
-	// Response header에 set-cookie 추가 - sessionId = "", userId = ""
+// 	// Response header에 set-cookie 추가 - userId = ""
+// 	// SessionID
+// 	header["set-cookie"] = GenerateCookie();
 
-	// UserID
-	header["set-cookie1"] = GenerateCookie();
+// 	// session cookie는 expire 설정 X
+// 	// cookie는 expire 설정 해주면 브라우저에서 알아서 처리
+// }
 
-	// SessionID
-	header["set-cookie2"] = GenerateCookie();
+// std::string Response::GenerateCookie(void)
+// {
+// 	std::string cookie = "";
+// 	// key=value 생성
+// 	cookie += "key=value;";
+// 	// expire 생성 - 시간 설정 얼마나?
+// 	cookie += "expire=";
+// 	cookie += SetExpireDate();
+// 	// path 생성
+// 	cookie += "path=/;";
+// 	// HttpOnly;
+// 	cookie += "HttpOnly";
+// 	return cookie;
+// }
 
-	// session cookie는 expire 설정 X
-	// cookie는 expire 설정 해주면 브라우저에서 알아서 처리
-}
+// std::string Response::SetExpireDate(void)
+// {
+//     std::time_t current_time = std::time(NULL);
+// 	// 원하는 시간 설정 가능
+//     std::time_t future_time = current_time + (15 * 60);
+//     std::tm* time_info = std::gmtime(&future_time);
 
-std::string Response::GenerateCookie(void)
-{
-	std::string cookie = "";
-	// key=value 생성
-	cookie += "key=value;";
-	// expire 생성 - 시간 설정 얼마나?
-	cookie += "expire=";
-	cookie += SetExpireDate();
-	// path 생성
-	cookie += "path=/;";
-	// HttpOnly;
-	cookie += "HttpOnly";
-	return cookie;
-}
-
-std::string Response::SetExpireDate(void)
-{
-    std::time_t current_time = std::time(NULL);
-	// 원하는 시간 설정 가능
-    std::time_t future_time = current_time + (15 * 60);
-    std::tm* time_info = std::gmtime(&future_time);
-
-    char buffer[100];
-    std::strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", time_info);
-    return buffer;
-}
+//     char buffer[100];
+//     std::strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", time_info);
+//     return buffer;
+// }
 
 void	Response::CombineMessage()
 {

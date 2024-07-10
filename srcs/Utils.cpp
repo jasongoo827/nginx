@@ -169,6 +169,16 @@ namespace utils
 		return (buffer);
 	}
 
+	std::string	getExpireTime()
+	{
+		std::time_t current_time = std::time(NULL);
+		std::time_t expire_time = current_time + (15 * 60);
+		std::tm* time_info = std::gmtime(&expire_time);
+		char buffer[100];
+		std::strftime(buffer, 80, "%a, %d %b %Y %H:%M:%S GMT", time_info);
+		return (buffer);
+	}
+
 	std::string	DivideStrByCRLF(std::string &data)
 	{
 		std::string res;

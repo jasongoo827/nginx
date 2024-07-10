@@ -16,7 +16,7 @@ Request& Request::operator=(const Request &rhs)
 	this->status = rhs.status;
 	this->bytes_to_read = rhs.bytes_to_read;
 	return *this;
-};
+}
 
 Request::~Request(){};
 
@@ -30,12 +30,12 @@ void	Request::SetMethod(std::string method)
 		this->method = DELETE;
 	else
 		this->method = OTHER;
-};
+}
 
 void	Request::SetUrl(const std::string &url)
 {
 	this->url = url;
-};
+}
 
 void	Request::SetVersion(const std::string &version)
 {
@@ -68,17 +68,17 @@ const std::string&	Request::GetUrl()
 const std::string &	Request::GetVersion()
 {
 	return this->version;
-};
+}
 
 std::map<std::string, std::string>&	Request::GetHeader()
 {
 	return this->header;
-};
+}
 
 const std::string&	Request::GetBody()
 {
 	return this->body;
-};
+}
 
 void	Request::CutBody(ssize_t size)
 {
@@ -88,7 +88,7 @@ void	Request::CutBody(ssize_t size)
 enum Incomplete	Request::GetStatus()
 {
 	return this->status;
-};
+}
 
 size_t	Request::GetBytesToRead(){
 	return this->bytes_to_read;

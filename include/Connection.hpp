@@ -10,12 +10,14 @@
 # include "Enum.hpp"
 # include <sys/event.h>
 # include <ctime>
+# include "Session.hpp"
 
+class Session;
 
 class Connection
 {
 public:
-	Connection(int clinet_socket_fd, sockaddr_in client_socket_addr, Config* config_ptr);
+	Connection(int clinet_socket_fd, sockaddr_in client_socket_addr, Config* config_ptr, Session* session);
 	Connection(const Connection& ref);
 	~Connection();
 	Connection& operator=(const Connection& ref);
@@ -39,6 +41,7 @@ public:
 	enum CurrentProgress		GetProgress();
 	int							GetFileFd();
 	std::time_t					GetTimeval();
+	Request&					GetRequest();
 	void						SetProgress(enum CurrentProgress progress);
 
 private:
@@ -56,6 +59,7 @@ private:
 	int						pipein;
 	int						pipeout;
 	std::time_t				timeval;
+	Session					*session;
 };
 
 #endif

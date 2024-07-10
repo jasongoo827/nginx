@@ -14,13 +14,14 @@ public:
 	void		CreateSession(); // Check == false 일 때 ALL METHOD
 	void		AddSessionData(std::string file_name); // POST
 	bool		CheckAuth(std::string file_name); // DELETE
+	void		SetSendCookie();
 	std::string	&GetSendCookie(); // 헤더에 Cookie 정보 추가할 때 사용
 
 private:
 	std::string									send_cookie;
 	size_t										hash_cookie;
 	std::map<size_t, size_t>					expire_time;
-	std::map<size_t, std::vector<std::string>&>	sessions;
+	std::map<size_t, std::vector<std::string> >	sessions;
 
 	size_t		GetTimeMicro();
 	void		SetHashCookie(std::string &cli_cookie_str);
