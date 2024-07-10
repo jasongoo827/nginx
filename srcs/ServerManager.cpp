@@ -265,10 +265,12 @@ void	ServerManager::CloseConnection(int sock_client)
 			if (v_connection[i]->GetPipein())
 			{
 				RemoveConnectionMap(v_connection[i]->GetPipein());
+				close(v_connection[i]->GetPipein());
 			}
 			if (v_connection[i]->GetPipeout())
 			{
 				RemoveConnectionMap(v_connection[i]->GetPipeout());
+				close(v_connection[i]->GetPipeout());
 			}
 			delete v_connection[i];
 			v_connection.erase(v_connection.begin() + i);

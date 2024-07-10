@@ -305,8 +305,8 @@ void	Connection::MakeResponse()
 		return ;
 	}
 	std::vector<std::string> cgivec = utils::SplitToVector(path, '/');
-	std::cout << cgivec.back() << server_ptr->GetCgiType() << "\n";
-	if (cgivec.back().find(server_ptr->GetCgiType()) != std::string::npos)
+	std::cout << cgivec.back() << server_ptr->GetCgiVec().front() << "\n";
+	if (cgivec.back().find(server_ptr->GetCgiVec().front()) != std::string::npos)
 	{
 		ProcessCgi();
 		return ;
