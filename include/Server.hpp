@@ -36,6 +36,7 @@ public:
 	const std::string& 					GetHostIp(void) const;
 	const std::string& 					GetServerName(void) const;
 	const std::string& 					GetCgiType(void) const;
+	const std::vector<std::string>&		GetCgiVec(void) const;
 	const ssize_t& 						GetPort(void) const;
 	const ssize_t& 						GetClientBodySize(void) const;
 	const std::string& 					GetFilePath(void) const;
@@ -46,6 +47,7 @@ private:
 	std::string					host_ip;
 	std::string					server_name;
 	std::string 				cgi_type; // 추후에 vector로 수정될 수 있음.
+	std::vector<std::string>	cgi_vec;
 	ssize_t						port;
 	ssize_t						client_body_size;
 	std::string					file_path;

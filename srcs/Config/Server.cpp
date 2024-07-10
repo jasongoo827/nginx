@@ -5,7 +5,7 @@
 Server::Server(): dup_mask(0) {}
 
 Server::Server(const Server& other): locate_vec(other.locate_vec), error_page(other.error_page),
-host_ip(other.host_ip), server_name(other.server_name), cgi_type(other.cgi_type), port(other.port),
+host_ip(other.host_ip), server_name(other.server_name), cgi_type(other.cgi_type), cgi_vec(other.cgi_vec), port(other.port),
 client_body_size(other.client_body_size), file_path(other.file_path), dup_mask(other.dup_mask) {}
 
 Server& Server::operator=(const Server& rhs)
@@ -17,6 +17,7 @@ Server& Server::operator=(const Server& rhs)
 	host_ip = rhs.host_ip;
 	server_name = rhs.server_name;
 	cgi_type = rhs.cgi_type;
+	cgi_vec = rhs.cgi_vec;
 	port = rhs.port;
 	client_body_size = rhs.client_body_size;
 	file_path = rhs.file_path;
@@ -26,6 +27,7 @@ Server& Server::operator=(const Server& rhs)
 
 Server::~Server()
 {
+	cgi_vec.clear();
 	locate_vec.clear();
 	error_page.clear();
 }
@@ -115,7 +117,9 @@ Status Server::ParseCgiType(std::string& str)
 	if (dup_mask & CGI_EXT)
 		return Status::Error("server name duplicate error");
 	dup_mask |= CGI_EXT;
-	return utils::ParseVariable(this->cgi_type, str);
+	std::string cmp("cgi");
+	return utils::ParseVariable(this->cgi_vec, str, cmp);
+	// return utils::ParseVariable(this->cgi_type, str);
 }
 
 Status	Server::ParseClientSize(std::string& str)
@@ -199,6 +203,11 @@ const std::string& Server::GetCgiType(void) const
 	return cgi_type;
 }
 
+const std::vector<std::string>&	Server::GetCgiVec(void) const
+{
+	return cgi_vec;
+}
+
 const ssize_t& Server::GetPort(void) const
 {
 	return port;
@@ -222,8 +231,13 @@ void Server::PrintServerInfo(void)
 	for (std::map<int, std::string>::iterator it = error_page.begin(); it != error_page.end(); ++it)
 		std::cout << "error_page: " << it->first << "  " << it->second << '\n';
 	std::cout << "client_body_size: " << this->client_body_size << '\n';
-	std::cout << "cgi type: " << this->cgi_type << '\n';
-	std::cout << "filepath: " << this->file_path;
+	// std::cout << "cgi type: " << this->cgi_type << '\n';
+	std::cout << "cgi type: ";
+	for (size_t i = 0; i < this->cgi_vec.size(); ++i)
+	{
+		std::cout << cgi_vec[i] << ' ';
+	}
+	std::cout << "\nfilepath: " << this->file_path;
 	for (size_t i = 0; i < this->locate_vec.size(); ++i)
 		this->locate_vec[i].PrintLocateInfo();
 	std::cout << '\n';
