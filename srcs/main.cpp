@@ -3,9 +3,13 @@
 #include "Status.hpp"
 #include "Parser.hpp"
 #include "Request.hpp"
+#include "Response.hpp"
+
+void	InitializeReasonmap();
 
 int main(int argc, char *argv[], char *envp[])
 {
+	InitializeReasonmap();
 	(void)envp;
 	Config config;
 	if (argc == 2)

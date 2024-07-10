@@ -5,47 +5,48 @@
 #include <sys/stat.h>
 
 std::map<int, std::string>	Response::reasonmap;
-// Response::reasonmap[100] = "Continue";
-// {}
-// 	{100, "Continue"},
-// 	{101, "Switching Protocols"},
-// 	{200, "OK"},
-// 	{201, "Created"},
-// 	{202, "Accepted"},
-// 	{203, "Non-Authoritative Information"},
-// 	{204, "No Content"},
-// 	{205, "Reset Content"},
-// 	{206, "Partial Content"},
-// 	{300, "Multiple Choices"},
-// 	{301, "Moved Permanently"},
-// 	{302, "Found"},
-// 	{303, "See Other"},
-// 	{304, "Not Modified"},
-// 	{305, "Use Proxy"},
-// 	{307, "Temporary Redirect"},
-// 	{400, "Bad Request"},
-// 	{401, "Unauthorized"},
-// 	{403, "Forbidden"},
-// 	{404, "Not Found"},
-// 	{405, "Method Not Allowed"},
-// 	{406, "Not Acceptable"},
-// 	{407, "Proxy Autentication Required"},
-// 	{408, "Request Timeout"},
-// 	{409, "Conflict"},
-// 	{410, "Gone"},
-// 	{411, "Length Required"},
-// 	{412, "Precondition Failed"},
-// 	{413, "Request Entity Too Large"},
-// 	{414, "Request URI Too Long"},
-// 	{415, "Unsupported Media Type"},
-// 	{416, "Requested Range Not Satisfiable"},
-// 	{417, "Expectation Failed"},
-// 	{500, "Internal Server Error"},
-// 	{501, "Bad Gateway"},
-// 	{502, "Service Unavailable"},
-// 	{503, "Gateway Timeout"},
-// 	{504, "HTTP Version Not Supported"},
-// };
+
+void	InitializeReasonmap()
+{
+	Response::reasonmap[100] = "Continue";
+	Response::reasonmap[101] = "Switching Protocols";
+	Response::reasonmap[200] = "OK";
+	Response::reasonmap[201] = "Created";
+	Response::reasonmap[202] = "Accepted";
+	Response::reasonmap[203] = "Non-Authoritative Information";
+	Response::reasonmap[204] = "No Content";
+	Response::reasonmap[205] = "Reset Content";
+	Response::reasonmap[206] = "Partial Content";
+	Response::reasonmap[300] = "Multiple Choices";
+	Response::reasonmap[301] = "Moved Permanently";
+	Response::reasonmap[302] = "Found";
+	Response::reasonmap[303] = "See Other";
+	Response::reasonmap[304] = "Not Modified";
+	Response::reasonmap[305] = "Use Proxy";
+	Response::reasonmap[307] = "Temporary Redirect";
+	Response::reasonmap[400] = "Bad Request";
+	Response::reasonmap[401] = "Unauthorized";
+	Response::reasonmap[403] = "Forbidden";
+	Response::reasonmap[404] = "Not Found";
+	Response::reasonmap[405] = "Method Not Allowed";
+	Response::reasonmap[406] = "Not Acceptable";
+	Response::reasonmap[407] = "Proxy Autentication Required";
+	Response::reasonmap[408] = "Request Timeout";
+	Response::reasonmap[409] = "Conflict";
+	Response::reasonmap[410] = "Gone";
+	Response::reasonmap[411] = "Length Required";
+	Response::reasonmap[412] = "Precondition Failed";
+	Response::reasonmap[413] = "Request Entity Too Large";
+	Response::reasonmap[414] = "Request URI Too Long";
+	Response::reasonmap[415] = "Unsupported Media Type";
+	Response::reasonmap[416] = "Requested Range Not Satisfiable";
+	Response::reasonmap[417] = "Expectation Failed";
+	Response::reasonmap[500] = "Internal Server Error";
+	Response::reasonmap[501] = "Bad Gateway";
+	Response::reasonmap[502] = "Service Unavailable";
+	Response::reasonmap[503] = "Gateway Timeout";
+	Response::reasonmap[504] = "HTTP Version Not Supported";
+}
 
 //OCCF
 Response::Response()
