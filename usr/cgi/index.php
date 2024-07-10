@@ -18,7 +18,7 @@
                 if ($file != "." && $file != "..") {
                     echo "<tr>";
                     echo "<td>" . $file . "</td>";
-                    echo "<td><form method='post' action='delete.php'><input type='hidden' name='file' value='" . $file . "'><input type='submit' value='Delete'></form></td>";
+                    echo "<td><form method='delete' action='" . $file . "'><input type='hidden'><input type='submit' value='Delete'></form></td>";
                     echo "</tr>";
                 }
             }

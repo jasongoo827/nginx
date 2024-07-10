@@ -25,6 +25,7 @@ public:
 	void						MakeResponse();
 	void						ProcessDir();
 	void						ProcessFile();
+	void						DeleteFile();
 	void						ProcessCgi();
 	void						ReadFile();
 	void						ReadCgi();

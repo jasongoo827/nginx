@@ -11,6 +11,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <cstdlib>
+#include <cstdio>
 
 Connection::Connection(int clinet_socket_fd, sockaddr_in client_socket_addr, Config* config_ptr)
 : request(), response(), cgi()
@@ -125,7 +126,7 @@ void	Connection::ReadClient()
 	}
 	else
 	{
-		// std::cout << "\n\n원본 메시지\n" << std::string(buffer, nread) << "\n\n\n";
+		std::cout << "\n\n원본 메시지\n" << std::string(buffer, nread) << "\n\n\n";
 		Parser	pars_buf(std::string(buffer, nread));
 		pars_buf.ParseStartline(request);
 		pars_buf.ParseHeader(request);
@@ -133,14 +134,14 @@ void	Connection::ReadClient()
 			request.SetStatus(READ_DONE);
 		pars_buf.ParseBody(request);
 		pars_buf.ParseTrailer(request);
-		// std::cout << "파싱 메시지\n";
-		// std::cout << request.GetMethod() << " " << request.GetUrl() << " " << request.GetVersion() << '\n';
-		// std::map<std::string, std::string> tmp_map = request.GetHeader();
-		// for (std::map<std::string, std::string>::iterator it = tmp_map.begin(); it != tmp_map.end(); ++it)
-		// 	std::cout << it->first << ": \'" << it->second << "\'\n";
-		// std::cout << '\'' << request.GetBody() << "\'\n";
+		std::cout << "파싱 메시지\n";
+		std::cout << request.GetMethod() << " " << request.GetUrl() << " " << request.GetVersion() << '\n';
+		std::map<std::string, std::string> tmp_map = request.GetHeader();
+		for (std::map<std::string, std::string>::iterator it = tmp_map.begin(); it != tmp_map.end(); ++it)
+			std::cout << it->first << ": \'" << it->second << "\'\n";
+		std::cout << '\'' << request.GetBody() << "\'\n";
 
-		// std::cout << "status = " << request.GetStatus() << '\n';
+		std::cout << "status = " << request.GetStatus() << '\n';
 		if (request.GetStatus() != READ_DONE)
 			progress = READ_CONTINUE;
 		return ;
@@ -153,7 +154,7 @@ void	Connection::MakeResponse()
 	//http/1.1 인데 host 헤더가 없을 때
 	if (request.GetStatus() == BAD_REQUEST)
 	{
-		response.make_response_40x(405);
+		response.make_response_40x(400);
 		progress = TO_CLIENT;
 		return ;
 	}
@@ -360,6 +361,11 @@ void	Connection::ProcessFile()
 		progress = TO_CLIENT;
 		return ;
 	}
+	if (request.GetMethod() == DELETE)
+	{
+		DeleteFile();
+		return ;
+	}
 
 	file_fd = open(path.c_str(), std::ios::binary);
 	if (file_fd == -1)
@@ -521,6 +527,17 @@ void	Connection::ReadFile()
 		std::cout << readsize << ": ReadFile done\n";
 		return ;
 	}
+}
+
+void	Connection::DeleteFile()
+{
+	if (std::remove(path.c_str()) == 0)
+	{
+		response.AddBody("delete success", 14);
+	}
+	else
+		response.make_response_50x(500);
+	progress = TO_CLIENT;
 }
 
 int		Connection::GetClientSocketFd()
