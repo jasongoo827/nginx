@@ -29,7 +29,7 @@ public:
 	void								SetVersion(const std::string &version);
 	void								SetBody(const std::string &body);
 	void								SetStatus(enum Incomplete type);
-	void								SetBytesToRead(size_t bytes);
+	void								SetBytesToRead(int bytes);
 
 	enum Method							GetMethod();
 	const std::string&					GetUrl();
@@ -37,7 +37,7 @@ public:
 	std::map<std::string, std::string>&	GetHeader();
 	const std::string&					GetBody();
 	enum Incomplete						GetStatus();
-	size_t								GetBytesToRead();
+	int									GetBytesToRead();
 	void								CutBody(ssize_t size);
 	const std::string					FindValueInHeader(const std::string &key);
 
@@ -48,7 +48,7 @@ private:
 	std::map<std::string, std::string>	header;
 	std::string							body;
 	enum Incomplete						status;
-	size_t								bytes_to_read;
+	int									bytes_to_read;
 };
 
 #endif

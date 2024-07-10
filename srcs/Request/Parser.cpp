@@ -1,9 +1,13 @@
 #include "Parser.hpp"
 #include "Utils.hpp"
 
-Parser::Parser(const std::string &buf) : data(buf) {};
+Parser::Parser() : data("") {};
 
 Parser::~Parser(){};
+
+std::string&	Parser::GetData(){
+	return data;
+};
 
 void	Parser::ParseStartline(Request &request)
 {
@@ -20,7 +24,7 @@ void	Parser::ParseStartline(Request &request)
 	version = utils::DivideStrByCRLF(data);
 	request.SetVersion(version);
 	request.SetStatus(READ_HEADER);
-	if (request.GetMethod() == OTHER || url.empty() || version.empty())
+	if (request.GetMethod() == EMPTY || url.empty() || version.empty())
 		request.SetStatus(BAD_REQUEST);
 };
 
@@ -48,7 +52,10 @@ void	Parser::ParseHeader(Request &request)
 		else
 			utils::SplitHeaderData(tmp_str, header_name, header_value);
 		if (utils::CheckNameChar(header_name) || utils::CheckHostDup(header_name, request_header))
+		{
 			request.SetStatus(BAD_REQUEST);
+			return ;
+		}
 		request_header.insert(std::make_pair(header_name, header_value));
 	}
 	if (request_header.empty() || request_header.find("host") == request_header.end())
@@ -67,7 +74,7 @@ void	Parser::ParseBody(Request &request)
 	{
 		if (request.FindValueInHeader("transfer-encoding") == "chunked")
 		{
-			size_t	cur_size = request.GetBytesToRead();
+			int	cur_size = request.GetBytesToRead();
 			if (cur_size == 0)
 				cur_size = utils::ReadChunkSize(data);
 			while (cur_size > 0)
@@ -75,12 +82,12 @@ void	Parser::ParseBody(Request &request)
 				if (data_size > 10000000 || cur_size > 10000000)
 				{
 					request.SetStatus(BAD_REQUEST);
-					break ;
+					return ;
 				}
 				tmp_str = utils::ReadData(data, cur_size);
 				data_size += cur_size;
 				body += tmp_str;
-				if (tmp_str.size() != cur_size)
+				if (tmp_str.size() != static_cast<size_t>(cur_size))
 				{
 					request.SetBytesToRead(cur_size - tmp_str.size());
 					break ;
@@ -96,7 +103,10 @@ void	Parser::ParseBody(Request &request)
 				request.SetBytesToRead(std::atoi(request.FindValueInHeader("content-length").c_str()));
 			data_size = request.GetBytesToRead();
 			if (request.FindValueInHeader("content-length").empty() || data_size < 0 || 10000000 < data_size)
+			{
 				request.SetStatus(BAD_REQUEST);
+				return ;
+			}
 			tmp_str = utils::ReadData(data, data_size);
 			request.SetBytesToRead(data_size - tmp_str.size());
 			body += tmp_str;
@@ -104,6 +114,8 @@ void	Parser::ParseBody(Request &request)
 				request.SetStatus(READ_DONE);
 		}
 	}
+	else
+		request.SetStatus(READ_DONE);
 	request.SetBody(body);
 };
 
@@ -137,7 +149,10 @@ void	Parser::ParseTrailer(Request &request)
 		return ;
 	}
 	if (trailer_name == "host" && request_header.find("host") != request_header.end())
+	{
 		request.SetStatus(BAD_REQUEST);
+		return ;
+	}
 	request_header.insert(std::make_pair(trailer_name, trailer_value));
 	while (!data.empty())
 	{
@@ -157,7 +172,10 @@ void	Parser::ParseTrailer(Request &request)
 			return ;
 		}
 		if (trailer_name == "host" && request_header.find("host") != request_header.end())
+		{
 			request.SetStatus(BAD_REQUEST);
+			return ;
+		}
 		request_header.insert(std::make_pair(trailer_name, trailer_value));
 	}
 };

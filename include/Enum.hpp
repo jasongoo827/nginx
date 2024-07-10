@@ -6,6 +6,7 @@ enum Method
 	GET,
 	POST,
 	DELETE,
+	EMPTY,
 	OTHER
 };
 
