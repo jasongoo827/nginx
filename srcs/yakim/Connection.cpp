@@ -141,7 +141,6 @@ void	Connection::ReadClient()
 		// }
 		std::cout << "\n데이터 길이 : " << nread << '\n';
 		std::cout << "이번 읽기 대상\n";
-		total_len += nread;
 		if (request.GetStatus() == READ_STARTLINE)
 			std::cout << "READ_STARTLINE\n";
 		if (request.GetStatus() == READ_HEADER)
@@ -165,7 +164,7 @@ void	Connection::ReadClient()
 			progress = READ_CONTINUE;
 		else
 		{
-			std::cout << "\n총 파싱 데이터 len : " << total_len << '\n';
+			// std::cout << "\n총 파싱 데이터 len : " << request.GetBody().size() << '\n';
 			// std::cout << "파싱 메시지\n";
 			// std::cout << request.GetMethod() << " " << request.GetUrl() << " " << request.GetVersion() << '\n';
 			// std::map<std::string, std::string> tmp_map = request.GetHeader();
@@ -173,7 +172,7 @@ void	Connection::ReadClient()
 			// 	std::cout << it->first << ": \'" << it->second << "\'\n";
 			// std::cout << '\'' << request.GetBody() << "\'\n";
 
-			// std::cout << "status = " << request.GetStatus() << '\n';
+			std::cout << "status = " << request.GetStatus() << '\n';
 		}
 		return ;
 	}

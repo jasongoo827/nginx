@@ -243,6 +243,8 @@ namespace utils
 					cur_num += *tmp_str - 87;
 				tmp_str++;
 			}
+			else if (*tmp_str == '\r' || *tmp_str == '\n')
+				tmp_str++;
 			else if (*tmp_str == ';')
 				break ;
 			else
@@ -253,13 +255,7 @@ namespace utils
 
 	int	ReadChunkSize(std::string &data)
 	{
-		std::string	res = "";
-		size_t pos = data.find("\r\n\r\n");
-		if (pos != std::string::npos)
-		{
-			res = data.substr(0, pos);
-			data.erase(0, pos + 4);
-		}
+		std::string	res = DivideStrByCRLF(data);
 		std::cout << "res : " << res << '\n';
 		int	size = 0;
 		if (res.empty())

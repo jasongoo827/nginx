@@ -86,14 +86,12 @@ void	Parser::ParseBody(Request &request)
 					return ;
 				}
 				tmp_str = utils::ReadData(data, cur_size);
-				std::cout << "tmp_str : \n" << tmp_str << '\n';
 				data_size += cur_size;
 				body += tmp_str;
-				if (tmp_str.size() != static_cast<size_t>(cur_size))
-				{
-					request.SetBytesToRead(cur_size - tmp_str.size());
+				std::cout << "cur_size: " << cur_size << ", tmp_str size: " << tmp_str.size() << '\n';
+				request.SetBytesToRead(cur_size - tmp_str.size());
+				if (request.GetBytesToRead() != 0)
 					break ;
-				}
 				cur_size = utils::ReadChunkSize(data);
 			}
 			if (cur_size == 0)
