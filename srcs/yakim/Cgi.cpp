@@ -86,15 +86,15 @@ void	Cgi::setEnv(Request& req, const Server& ser)
 	envmap[std::string("GATEWAY_INTERFACE")] = std::string("CGI/1.1");
 	envmap[std::string("PATH_INFO")] = std::string(req.GetUrl());
 	envmap[std::string("PATH_TRANSLATED")] = std::string(req.GetUrl());//
+	envmap[std::string("PATH_FILEUPLOAD")] = std::string(ser.GetFilePath());//
 	envmap[std::string("QUERY_STRING")] = "";
 	envmap[std::string("REMOTE_ADDR")] = "127.0.0.1";
 	envmap[std::string("REQUEST_METHOD")] = utils::MethodToString(req.GetMethod());
-	envmap[std::string("SCRIPT_NAME")] = std::string(req.GetUrl());
+	envmap[std::string("SCRIPT_NAME")] = "";//
 	envmap[std::string("SERVER_NAME")] = ser.GetServerName();
 	envmap[std::string("SERVER_PORT")] = ser.GetPort();
 	envmap[std::string("SERVER_PROTOCOL")] = std::string("HTTP/1.1");
 	envmap[std::string("SERVER_SOFTWARE")] = std::string("nginx/0.1");
-
 	makeEnvp();
 }
 

@@ -107,6 +107,10 @@ ssize_t	Response::GetMessageSize()
 	return message.size();
 }
 
+void	Response::SetStatus(int status)
+{
+	this->status = status;
+}
 
 void	Response::make_response_30x(int status, std::string str)
 {

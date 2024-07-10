@@ -11,11 +11,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <cstdlib>
-<<<<<<< HEAD
-#include <cstdio>
-=======
 #include <Session.hpp>
->>>>>>> c1d544cf19625acd4c603e0ccc1706cdc72de650
 
 Connection::Connection(int clinet_socket_fd, sockaddr_in client_socket_addr, Config* config_ptr, Session* session)
 : request(), response(), cgi()
@@ -140,7 +136,7 @@ void	Connection::ReadClient()
 	}
 	else
 	{
-		std::cout << "\n\n원본 메시지\n" << std::string(buffer, nread) << "\n\n\n";
+		// std::cout << "\n\n원본 메시지\n" << std::string(buffer, nread) << "\n\n\n";
 		Parser	pars_buf(std::string(buffer, nread));
 		pars_buf.ParseStartline(request);
 		pars_buf.ParseHeader(request);
@@ -168,7 +164,7 @@ void	Connection::MakeResponse()
 	//http/1.1 인데 host 헤더가 없을 때
 	if (request.GetStatus() == BAD_REQUEST)
 	{
-		response.make_response_40x(400);
+		response.make_response_40x(405);
 		progress = TO_CLIENT;
 		return ;
 	}
@@ -266,7 +262,7 @@ void	Connection::MakeResponse()
 		return ;
 	}
 
-	//filepath 만들기
+	//path 만들기
 	path = "";
 	path += locate_ptr->GetRoot();
 	path += "/";
@@ -377,20 +373,21 @@ void	Connection::ProcessFile()
 	}
 	if (request.GetMethod() == DELETE)
 	{
-<<<<<<< HEAD
-		DeleteFile();
-		return ;
-	}
-
-=======
 		if (session->CheckAuth(path.substr(path.rfind('/') + 1)) == true)
+		{
 			std::cout << "test : auth\n";
+			path.pop_back();
+			std::remove(path.c_str());
+			response.SetStatus(202);
+		}
 		else
+		{
 			std::cout << "test : no auth\n";
+			response.make_response_40x(403);
+		}
 		progress = TO_CLIENT;
 		return ;
 	}
->>>>>>> c1d544cf19625acd4c603e0ccc1706cdc72de650
 	file_fd = open(path.c_str(), std::ios::binary);
 	if (file_fd == -1)
 	{
@@ -551,17 +548,6 @@ void	Connection::ReadFile()
 		std::cout << readsize << ": ReadFile done\n";
 		return ;
 	}
-}
-
-void	Connection::DeleteFile()
-{
-	if (std::remove(path.c_str()) == 0)
-	{
-		response.AddBody("delete success", 14);
-	}
-	else
-		response.make_response_50x(500);
-	progress = TO_CLIENT;
 }
 
 int		Connection::GetClientSocketFd()

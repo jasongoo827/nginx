@@ -3,7 +3,10 @@
 // 환경 변수 사용
 $contentType = getenv('CONTENT_TYPE');
 $contentLength = getenv('CONTENT_LENGTH');
+$pathfileupload = getenv('PATH_FILEUPLOAD');
 $result = "";
+$result .= $contentLength;
+$result .= $contentType;
 // 표준 입력에서 본문 데이터 읽기
 $stdin = fopen('php://stdin', 'r');
 if ($stdin == false)
@@ -59,7 +62,11 @@ foreach ($parts as $part)
 	$filename = $filename_matches[1];
 
 	// 파일 내용을 저장
-	$file_handle = fopen($filename, 'w');
+	$filepath = $pathfileupload . DIRECTORY_SEPARATOR . $filename;
+	$result .= "\n";
+	$result .= $filepath;
+	$result .= "\n";
+	$file_handle = fopen($filepath, 'w');
 	fwrite($file_handle, substr($body, 0, -2));
 	fclose($file_handle);
 
