@@ -169,9 +169,9 @@ void	Connection::ReadClient()
 			std::cout << "\n총 파싱 데이터 len : " << request.GetBody().size() << '\n';
 			// std::cout << "파싱 메시지\n";
 			// std::cout << request.GetMethod() << " " << request.GetUrl() << " " << request.GetVersion() << '\n';
-			// std::map<std::string, std::string> tmp_map = request.GetHeader();
-			// for (std::map<std::string, std::string>::iterator it = tmp_map.begin(); it != tmp_map.end(); ++it)
-			// 	std::cout << it->first << ": \'" << it->second << "\'\n";
+			std::map<std::string, std::string> tmp_map = request.GetHeader();
+			for (std::map<std::string, std::string>::iterator it = tmp_map.begin(); it != tmp_map.end(); ++it)
+				std::cout << it->first << ": \'" << it->second << "\'\n";
 			// std::cout << '\'' << request.GetBody() << "\'\n";
 
 			std::cout << "status = " << request.GetStatus() << '\n';
@@ -193,7 +193,7 @@ void	Connection::MakeResponse()
 	if (request.GetStatus() == BAD_REQUEST)
 	{
 		response.make_response_40x(405);
-		progress = TO_CLIENT;
+		progress = COMBINE;
 		return ;
 	}
 	//http/1.1 인데 host 헤더가 없을 때
@@ -203,7 +203,7 @@ void	Connection::MakeResponse()
 		{
 			std::cout << "cant find host header\n";
 			response.make_response_40x(400);
-			progress = TO_CLIENT;
+			progress = COMBINE;
 			return ;
 		}
 	}
@@ -243,7 +243,7 @@ void	Connection::MakeResponse()
 	{
 		std::cout << "cant find locate\n";
 		response.make_response_40x(404);
-		progress = TO_CLIENT;
+		progress = COMBINE;
 		return ;
 	}
 	//request 유효성 검사끝
@@ -254,7 +254,7 @@ void	Connection::MakeResponse()
 	{
 		std::cout << "method not defined\n";
 		response.make_response_40x(405);
-		progress = TO_CLIENT;
+		progress = COMBINE;
 		return ;
 	}
 
@@ -273,9 +273,12 @@ void	Connection::MakeResponse()
 		}
 		if (flag == 0)
 		{
+			std::cout << " method: " << request.GetMethod() << "\n";
+			for (size_t i = 0; i < locate_ptr->GetMethodVec().size(); i++)
+				std::cout << " allowed method: " << locate_ptr->GetMethodVec()[i] << "\n";
 			std::cout << "cant find allowd method\n";
 			response.make_response_40x(403);
-			progress = TO_CLIENT;
+			progress = COMBINE;
 			return ;
 		}
 	}
@@ -286,7 +289,7 @@ void	Connection::MakeResponse()
 		int code = locate_ptr->GetRedirectPair().first;
 		response.make_response_30x(code, locate_ptr->GetRedirectPair().second);
 		std::cout << "redirected with" << code << "\n";
-		progress = TO_CLIENT;
+		progress = COMBINE;
 		return ;
 	}
 
@@ -308,12 +311,17 @@ void	Connection::MakeResponse()
 	std::vector<std::string> cgi = utils::SplitToVector(path, '.');
 	std::string extension = "." + cgi.back();
 	std::cout << cgi.back() << server_ptr->GetCgiVec().front() << "\n";
-	if (request.GetMethod() == POST)
+	if (request.GetMethod() == POST && request.GetBody().size() != 0)
 	{
 		if (std::find(server_ptr->GetCgiVec().begin(), server_ptr->GetCgiVec().end(), extension) != server_ptr->GetCgiVec().end())
 		{
 			ProcessCgi();
 			return ;
+		}
+		else
+		{
+			response.SetStatus(200);
+			progress = COMBINE;
 		}
 	}
 	else
@@ -330,7 +338,7 @@ void	Connection::ProcessDir()
 	if (request.GetMethod() != GET)
 	{
 		response.make_response_40x(405);
-		progress = TO_CLIENT;
+		progress = COMBINE;
 		return ;
 	}
 	//if request as directory but it is file
@@ -340,14 +348,14 @@ void	Connection::ProcessDir()
 		std::cout << "path: " << path << "\n";
 		std::cout << "file not exist\n";
 		response.make_response_40x(404);
-		progress = TO_CLIENT;
+		progress = COMBINE;
 		return;
 	}
 	if ((buf.st_mode & R_OK) == 0)
 	{
 		std::cout << "file cant read\n";
 		response.make_response_40x(403);
-		progress = TO_CLIENT;
+		progress = COMBINE;
 		return ;
 	}
 	//check if default index file exist
@@ -374,13 +382,13 @@ void	Connection::ProcessDir()
 	if (locate_ptr->GetAutoIndex())
 	{
 		response.AutoIndex(path);
-		progress = TO_CLIENT;
+		progress = COMBINE;
 		return ;
 	}
 	else
 	{
 		response.make_response_40x(404);
-		progress = TO_CLIENT;
+		progress = COMBINE;
 		return ;
 	}
 }
@@ -395,7 +403,7 @@ void	Connection::ProcessFile()
 	{
 		std::cout << "ProcessFile: open failed\n";
 		response.make_response_40x(404);
-		progress = TO_CLIENT;
+		progress = COMBINE;
 		return ;
 	}
 	//request as file but is directory
@@ -403,7 +411,7 @@ void	Connection::ProcessFile()
 	{
 		std::cout << "ProcessFile: is dir\n";
 		response.make_response_30x(301, request.GetUrl() + "/");
-		progress = TO_CLIENT;
+		progress = COMBINE;
 		return ;
 	}
 	if (request.GetMethod() == DELETE)
@@ -419,7 +427,7 @@ void	Connection::ProcessFile()
 			std::cout << "test : no auth\n";
 			response.make_response_40x(403);
 		}
-		progress = TO_CLIENT;
+		progress = COMBINE;
 		return ;
 	}
 	file_fd = open(path.c_str(), std::ios::binary);
@@ -427,7 +435,7 @@ void	Connection::ProcessFile()
 	{
 		std::cout << "ProcessFile: open file failed\n";
 		response.make_response_40x(403);
-		progress = TO_CLIENT;
+		progress = COMBINE;
 		return ;
 	}
 	//파일 non-block 설정
@@ -441,6 +449,7 @@ void	Connection::SendMessage()
 {
 	const std::string &buffer = response.GetMessage();
 	std::cout << "---------message-------------\n";
+	std::cout << response.GetStatus();
 	// std::cout << response.GetMessage();
 	std::cout << "messagesize: " << buffer.size() << "\n";
 	std::cout << "---------message end-------------\n";
@@ -476,7 +485,7 @@ void	Connection::ProcessCgi()
 	{
 		std::cout << "cannot find path\n";
 		response.make_response_40x(404);
-		progress = TO_CLIENT;
+		progress = COMBINE;
 		return ;
 	}
 	//환경변수 설정
@@ -501,7 +510,7 @@ void	Connection::ProcessCgi()
 	else
 	{
 		response.make_response_50x(500);
-		progress = TO_CLIENT;
+		progress = COMBINE;
 	}
 }
 
@@ -516,15 +525,16 @@ void	Connection::ReadCgi()
 		std::cout << "readcgi error\n";
 		std::cout << errno << "\n";
 		response.make_response_50x(500);
-		progress = TO_CLIENT;
+		progress = COMBINE;
 		return ;
 	}
 	else if (readsize == 0)
 	{
 		std::cout << "readcgi done << "<<readsize<<"\n";
 		response.AddBody(buff, readsize);
+		response.SplitBodyHeaderData();
 		utils::RemoveReadEvent(kq, pipein);
-		progress = TO_CLIENT;
+		progress = COMBINE;
 		return ;
 	}
 	else
@@ -545,7 +555,7 @@ void	Connection::SendCgi()
 		std::cout << "send cgi error\n";
 		std::cout << errno << "\n";
 		response.make_response_50x(500);
-		progress = TO_CLIENT;
+		progress = COMBINE;
 		return ;
 	}
 	else if (!request.GetBody().empty())
@@ -574,7 +584,7 @@ void	Connection::ReadFile()
 	if (readsize < 0)
 	{
 		response.make_response_50x(500);
-		progress = TO_CLIENT;
+		progress = COMBINE;
 		return ;
 	}
 	else if (readsize == maxsize)
@@ -585,7 +595,7 @@ void	Connection::ReadFile()
 	else
 	{
 		response.AddBody(buff, readsize);
-		progress = TO_CLIENT;
+		progress = COMBINE;
 		std::cout << readsize << ": ReadFile done\n";
 		return ;
 	}
@@ -628,6 +638,11 @@ std::time_t		Connection::GetTimeval()
 Request&	Connection::GetRequest()
 {
 	return request;
+}
+
+Response&	Connection::GetResponse()
+{
+	return response;
 }
 
 int		Connection::GetKq()

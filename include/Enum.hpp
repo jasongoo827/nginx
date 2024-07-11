@@ -44,6 +44,17 @@ enum CurrentProgress
 	TO_CLIENT,
 	END_CONNECTION,
 	READ_CONTINUE,
+	COMBINE
+};
+
+enum Incomplete
+{
+	READ_STARTLINE,
+	READ_HEADER,
+	READ_BODY,
+	READ_TRAILER,
+	READ_DONE,
+	BAD_REQUEST
 };
 
 #endif

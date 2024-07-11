@@ -4,16 +4,6 @@
 # include "Utils.hpp"
 # include "Enum.hpp"
 
-enum Incomplete
-{
-	READ_STARTLINE,
-	READ_HEADER,
-	READ_BODY,
-	READ_TRAILER,
-	READ_DONE,
-	BAD_REQUEST
-};
-
 class Request
 {
 public:

@@ -265,3 +265,30 @@ void Response::AutoIndex(const std::string& path)
 	body = str.str();
 	closedir(dirptr);
 }
+
+void	Response::SplitBodyHeaderData()
+{
+	std::string							tmp_body = "";
+	std::string							tmp_str = "";
+	std::string							header_name = "";
+	std::string							header_value = "";
+
+	if (body.find("\r\n\r\n") != std::string::npos)
+	{
+		tmp_body = utils::DivideStrByDoubleCRLF(body);
+		while (!tmp_body.empty())
+		{
+			tmp_str = utils::DivideStrByCRLF(tmp_body);
+			if (tmp_str.empty())
+				break;
+			if (tmp_str[0] == ' ' || tmp_str[0] == '\t')
+			{
+				utils::TrimSpaceTap(tmp_str);
+				header.rbegin()->second += " " + tmp_str;
+			}
+			else
+				utils::SplitHeaderData(tmp_str, header_name, header_value);
+			AddHeader(header_name, header_value);
+		}
+	}
+};

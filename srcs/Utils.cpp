@@ -179,6 +179,25 @@ namespace utils
 		return (buffer);
 	}
 
+	std::string	DivideStrByDoubleCRLF(std::string &data)
+	{
+		std::string res;
+
+		size_t pos = data.find("\r\n\r\n");
+		if (pos != std::string::npos)
+		{
+			res = data.substr(0, pos);
+			data.erase(0, pos + 4);
+		}
+		else
+		{
+			pos = data.size();
+			res = data.substr(0, pos);
+			data.erase(0, data.size());
+		}
+		return res;
+	}
+
 	std::string	DivideStrByCRLF(std::string &data)
 	{
 		std::string res;

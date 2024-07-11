@@ -29,7 +29,6 @@ public:
 	void						MakeResponse();
 	void						ProcessDir();
 	void						ProcessFile();
-	void						DeleteFile();
 	void						ProcessCgi();
 	void						ReadFile();
 	void						ReadCgi();
@@ -44,6 +43,7 @@ public:
 	int							GetFileFd();
 	std::time_t					GetTimeval();
 	Request&					GetRequest();
+	Response&					GetResponse();
 	int							GetKq();
 	void						SetProgress(enum CurrentProgress progress);
 

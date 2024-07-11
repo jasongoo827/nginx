@@ -38,6 +38,7 @@ public:
 	void								AddBody(const std::string& str, ssize_t size);
 	void								CutBody(ssize_t size);
 	void								AutoIndex(const std::string& path);
+	void								SplitBodyHeaderData();
 
 	static std::map<int, std::string>	reasonmap;
 

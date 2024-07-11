@@ -95,6 +95,8 @@ void	Cgi::setEnv(Request& req, const Server& ser)
 	envmap[std::string("SERVER_PORT")] = ser.GetPort();
 	envmap[std::string("SERVER_PROTOCOL")] = std::string("HTTP/1.1");
 	envmap[std::string("SERVER_SOFTWARE")] = std::string("nginx/0.1");
+	envmap[std::string("HTTP_X_SECRET_HEADER_FOR_TEST")] = req.GetHeader()["x-secret-header-for-test"];
+	
 	makeEnvp();
 }
 

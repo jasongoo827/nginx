@@ -96,12 +96,7 @@ bool		ServerManager::RunServer(Config* config)
 					}
 					Connection* connection = connectionmap[static_cast<int>(events[i].ident)];
 					std::cout << "socket_fd: " << connection->GetClientSocketFd() << '\n';
-					struct timeval time1;
-					struct timeval time2;
-					gettimeofday(&time1, NULL);
 					connection->MainProcess(events[i]);
-					gettimeofday(&time2, NULL);
-					std::cout << "-----time------------------ "<< time2.tv_sec * 1000000 + time2.tv_usec - time1.tv_sec * 1000000 - time1.tv_usec << "\n";
 					AfterProcess(connection);
 				}
 			}
@@ -349,19 +344,22 @@ void	ServerManager::AfterProcess(Connection* connection)
 	}
 	else if (connection->GetProgress() == TO_CLIENT)
 	{
-		utils::RemoveReadEvent(kq, connection->GetClientSocketFd());
-		if (connection->GetFileFd())
-			utils::RemoveReadEvent(kq, connection->GetFileFd());
-		if (connection->GetPipein())
-		{
-			utils::RemoveReadEvent(kq, connection->GetPipein());
-		}
-		utils::AddWriteEvent(kq, connection->GetClientSocketFd());
-		AddConnectionMap(connection->GetClientSocketFd(), connection);
 	}
 	else if (connection->GetProgress() == CGI)
 	{
 		AddConnectionMap(connection->GetPipeout(), connection);
 		AddConnectionMap(connection->GetPipein(), connection);
+	}
+	else if (connection->GetProgress() == COMBINE)
+	{
+		utils::RemoveReadEvent(kq, connection->GetClientSocketFd());
+		if (connection->GetFileFd())
+			utils::RemoveReadEvent(kq, connection->GetFileFd());
+		if (connection->GetPipein())
+			utils::RemoveReadEvent(kq, connection->GetPipein());
+		utils::AddWriteEvent(kq, connection->GetClientSocketFd());
+		AddConnectionMap(connection->GetClientSocketFd(), connection);
+		connection->GetResponse().CombineMessage();
+		connection->SetProgress(TO_CLIENT);
 	}
 }
