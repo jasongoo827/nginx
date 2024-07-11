@@ -224,7 +224,7 @@ namespace utils
 	int	hstoi(const std::string &trgt)
 	{
 		const char *tmp_str = trgt.c_str();
-		size_t	cur_num = 0;
+		int	cur_num = -1;
 
 		while (*tmp_str != '\0')
 		{
@@ -232,6 +232,8 @@ namespace utils
 			('A' <= *tmp_str && *tmp_str <= 'F') ||
 			('a' <= *tmp_str && *tmp_str <= 'f'))
 			{
+				if (cur_num == -1)
+					cur_num = 0;
 				cur_num *= 16;
 				if (cur_num > 10000000)
 					return (-1);
