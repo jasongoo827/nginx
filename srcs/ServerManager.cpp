@@ -147,7 +147,7 @@ bool	ServerManager::InitServerSocket(int &sock_serv, sockaddr_in &addr_serv)
 		return (false);
 	}
 	/* 서버 소켓에 대한 통신 활성화 */
-	if (listen(sock_serv, 16) == -1)
+	if (listen(sock_serv, 60) == -1)// 원래값: 16
 	{
 		std::cerr << "listen error\n";
 		close(sock_serv);

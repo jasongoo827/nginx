@@ -189,7 +189,6 @@ void	Connection::ReadClient()
 void	Connection::MakeResponse()
 {
 	//request 유효성 검사
-	//http/1.1 인데 host 헤더가 없을 때
 	if (request.GetStatus() == BAD_REQUEST)
 	{
 		response.make_response_40x(405);
@@ -277,7 +276,7 @@ void	Connection::MakeResponse()
 			for (size_t i = 0; i < locate_ptr->GetMethodVec().size(); i++)
 				std::cout << " allowed method: " << locate_ptr->GetMethodVec()[i] << "\n";
 			std::cout << "cant find allowd method\n";
-			response.make_response_40x(403);
+			response.make_response_40x(405);
 			progress = COMBINE;
 			return ;
 		}
@@ -287,8 +286,17 @@ void	Connection::MakeResponse()
 	if (!locate_ptr->GetRedirectPair().second.empty())
 	{
 		int code = locate_ptr->GetRedirectPair().first;
-		response.make_response_30x(code, locate_ptr->GetRedirectPair().second);
-		std::cout << "redirected with" << code << "\n";
+		if (code >= 200 && code < 400)
+		{
+			if (request.GetBody().size() > 100)
+				response.make_response_40x(413);
+			else
+				response.make_response_30x(code, locate_ptr->GetRedirectPair().second);
+		}
+		else if (code >= 400 && code < 500)
+			response.make_response_40x(code);
+		else if (code >= 500 && code < 600)
+			response.make_response_50x(code);
 		progress = COMBINE;
 		return ;
 	}
@@ -300,29 +308,21 @@ void	Connection::MakeResponse()
 		path += "/";
 	path += request.GetUrl().substr(locate_ptr->GetLocatePath().size());
 	std::cout << "path: " << path << "\n";
-	
 
-	//file, dir, cgi 판단 및 분기
+	if (request.GetMethod() == GET || (request.GetMethod() == POST && request.GetBody().size() == 0))
+		ProcessGet();
+	else if (request.GetMethod() == POST)
+		ProcessPost();
+	else if (request.GetMethod() == DELETE)
+		ProcessDelete();
+}
+
+void	Connection::ProcessGet()
+{
 	if (path.back() == '/')
 	{
 		ProcessDir();
 		return ;
-	}
-	std::vector<std::string> cgi = utils::SplitToVector(path, '.');
-	std::string extension = "." + cgi.back();
-	std::cout << cgi.back() << server_ptr->GetCgiVec().front() << "\n";
-	if (request.GetMethod() == POST && request.GetBody().size() != 0)
-	{
-		if (std::find(server_ptr->GetCgiVec().begin(), server_ptr->GetCgiVec().end(), extension) != server_ptr->GetCgiVec().end())
-		{
-			ProcessCgi();
-			return ;
-		}
-		else
-		{
-			response.SetStatus(200);
-			progress = COMBINE;
-		}
 	}
 	else
 	{
@@ -331,16 +331,54 @@ void	Connection::MakeResponse()
 	}
 }
 
+void	Connection::ProcessPost()
+{
+	std::cout << "Processpost\n";
+	std::vector<std::string> cgi = utils::SplitToVector(path, '.');
+	std::string extension = "." + cgi.back();
+	std::cout << cgi.back() << server_ptr->GetCgiVec().front() << "\n";
+	if (std::find(server_ptr->GetCgiVec().begin(), server_ptr->GetCgiVec().end(), extension) != server_ptr->GetCgiVec().end())
+	{
+		ProcessCgi();
+		return ;
+	}
+	else
+	{
+		response.SetStatus(200);
+		progress = COMBINE;
+	}
+}
+
+void	Connection::ProcessDelete()
+{
+	struct stat buf;
+	if (stat(path.c_str(), &buf) == -1)
+	{
+		std::cout << "ProcessFile: open failed\n";
+		response.make_response_40x(404);
+		progress = COMBINE;
+		return ;
+	}
+	if (session->CheckAuth(path.substr(path.rfind('/') + 1)) == true)
+	{
+		std::cout << "test : auth\n";
+		std::remove(path.c_str());
+		response.SetStatus(202);
+	}
+	else
+	{
+		std::cout << "test : no auth\n";
+		response.make_response_40x(403);
+	}
+	progress = COMBINE;
+	return ;
+}
+
+
 void	Connection::ProcessDir()
 {
 	//if method != GET
 	std::cout << "ProcessDir\n";
-	if (request.GetMethod() != GET)
-	{
-		response.make_response_40x(405);
-		progress = COMBINE;
-		return ;
-	}
 	//if request as directory but it is file
 	struct stat buf;
 	if (stat(path.c_str(), &buf) == -1)
@@ -411,22 +449,6 @@ void	Connection::ProcessFile()
 	{
 		std::cout << "ProcessFile: is dir\n";
 		response.make_response_30x(301, request.GetUrl() + "/");
-		progress = COMBINE;
-		return ;
-	}
-	if (request.GetMethod() == DELETE)
-	{
-		if (session->CheckAuth(path.substr(path.rfind('/') + 1)) == true)
-		{
-			std::cout << "test : auth\n";
-			std::remove(path.c_str());
-			response.SetStatus(202);
-		}
-		else
-		{
-			std::cout << "test : no auth\n";
-			response.make_response_40x(403);
-		}
 		progress = COMBINE;
 		return ;
 	}

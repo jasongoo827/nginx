@@ -27,6 +27,9 @@ public:
 	void						MainProcess(struct kevent& event);
 	void						ReadClient();
 	void						MakeResponse();
+	void						ProcessGet();
+	void						ProcessPost();
+	void						ProcessDelete();
 	void						ProcessDir();
 	void						ProcessFile();
 	void						ProcessCgi();
