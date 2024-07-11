@@ -19,7 +19,7 @@ class Parser;
 class Connection
 {
 public:
-	Connection(int clinet_socket_fd, sockaddr_in client_socket_addr, Config* config_ptr, Session* session);
+	Connection(int kq, int clinet_socket_fd, sockaddr_in client_socket_addr, Config* config_ptr, Session* session);
 	Connection(const Connection& ref);
 	~Connection();
 	Connection& operator=(const Connection& ref);
@@ -44,9 +44,11 @@ public:
 	int							GetFileFd();
 	std::time_t					GetTimeval();
 	Request&					GetRequest();
+	int							GetKq();
 	void						SetProgress(enum CurrentProgress progress);
 
 private:
+	int						kq;
 	int						client_socket_fd;
 	struct sockaddr_in		client_socket_addr;
 	std::string				path;

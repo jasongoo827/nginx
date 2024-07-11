@@ -26,6 +26,8 @@ public:
 	const std::string					GetReason(int status);
 	void								SetStatus(int status);
 
+	void								BodyResize(size_t size);
+
 	void								CutMessage(ssize_t size);
 	void								AddHeader(std::string key, std::string value);
 	void								AddBasicHeader();

@@ -141,6 +141,12 @@ void	Response::AddHeader(std::string key, std::string value)
 	header[key] = value;
 }
 
+void	Response::BodyResize(size_t size)
+{
+	body.resize(size);
+	body = "";
+}
+
 void	Response::AddBasicHeader()
 {
 	header["Server"] = "nginx/0.1";//
@@ -213,7 +219,7 @@ void	Response::CombineMessage()
 
 void	Response::AddBody(const std::string& str, ssize_t size)
 {
-	body += str.substr(0, size);
+	body.append(str.substr(0, size));
 }
 
 const std::string	Response::GetReason(int status)

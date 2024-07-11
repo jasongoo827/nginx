@@ -52,6 +52,11 @@ namespace utils
 	void						SplitHeaderData(std::string &data, std::string &name, std::string &value);
 	bool						SetNonBlock(int &sock_trgt);
 	std::string					MethodToString(enum Method method);
+
+	void						AddWriteEvent(int kq, int fd);
+	void						RemoveWriteEvent(int kq, int fd);
+	void						AddReadEvent(int kq, int fd);
+	void						RemoveReadEvent(int kq, int fd);
 }
 
 #endif

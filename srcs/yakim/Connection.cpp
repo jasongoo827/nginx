@@ -13,7 +13,7 @@
 #include <cstdlib>
 #include <Session.hpp>
 
-Connection::Connection(int clinet_socket_fd, sockaddr_in client_socket_addr, Config* config_ptr, Session* session)
+Connection::Connection(int kq, int clinet_socket_fd, sockaddr_in client_socket_addr, Config* config_ptr, Session* session)
 : request(), response(), cgi()
 {
 	this->client_socket_fd = clinet_socket_fd;
@@ -26,6 +26,7 @@ Connection::Connection(int clinet_socket_fd, sockaddr_in client_socket_addr, Con
 	std::time(&timeval);
 	this->session = session;
 	this->total_len = 0;
+	this->kq = kq;
 }
 
 Connection::Connection(const Connection& ref)
@@ -40,6 +41,7 @@ Connection::Connection(const Connection& ref)
 	this->pipeout = ref.pipeout;
 	this->timeval = ref.timeval;
 	this->session = ref.session;
+	this->kq = ref.kq;
 }
 
 Connection::~Connection()
@@ -60,6 +62,7 @@ Connection&	Connection::operator=(const Connection& ref)
 	this->request = ref.request;
 	this->cgi = ref.cgi;
 	this->session = ref.session;
+	this->kq = ref.kq;
 	return (*this);
 }
 
@@ -88,12 +91,12 @@ void	Connection::MainProcess(struct kevent& event)
 		response.CombineMessage();
 		return ;
 	}
-	else if (progress == TO_CGI && event.filter == EVFILT_WRITE)
+	else if (progress == CGI && event.filter == EVFILT_WRITE)
 	{
 		SendCgi();
 		return ;
 	}
-	else if (progress == FROM_CGI && event.filter == EVFILT_READ)
+	else if (progress == CGI && event.filter == EVFILT_READ)
 	{
 		ReadCgi();
 		response.CombineMessage();
@@ -164,7 +167,7 @@ void	Connection::ReadClient()
 			progress = READ_CONTINUE;
 		else
 		{
-			// std::cout << "\n총 파싱 데이터 len : " << request.GetBody().size() << '\n';
+			std::cout << "\n총 파싱 데이터 len : " << request.GetBody().size() << '\n';
 			// std::cout << "파싱 메시지\n";
 			// std::cout << request.GetMethod() << " " << request.GetUrl() << " " << request.GetVersion() << '\n';
 			// std::map<std::string, std::string> tmp_map = request.GetHeader();
@@ -303,12 +306,16 @@ void	Connection::MakeResponse()
 		ProcessDir();
 		return ;
 	}
-	std::vector<std::string> cgivec = utils::SplitToVector(path, '/');
-	std::cout << cgivec.back() << server_ptr->GetCgiVec().front() << "\n";
-	if (cgivec.back().find(server_ptr->GetCgiVec().front()) != std::string::npos)
+	std::vector<std::string> cgi = utils::SplitToVector(path, '.');
+	std::string extension = "." + cgi.back();
+	std::cout << cgi.back() << server_ptr->GetCgiVec().front() << "\n";
+	if (request.GetMethod() == POST)
 	{
-		ProcessCgi();
-		return ;
+		if (std::find(server_ptr->GetCgiVec().begin(), server_ptr->GetCgiVec().end(), extension) != server_ptr->GetCgiVec().end())
+		{
+			ProcessCgi();
+			return ;
+		}
 	}
 	else
 	{
@@ -435,9 +442,9 @@ void	Connection::SendMessage()
 {
 	const std::string &buffer = response.GetMessage();
 	std::cout << "---------message-------------\n";
-	std::cout << response.GetMessage();
-	std::cout << "---------message end-------------\n";
+	// std::cout << response.GetMessage();
 	std::cout << "messagesize: " << buffer.size() << "\n";
+	std::cout << "---------message end-------------\n";
 	ssize_t send_size = write(client_socket_fd, buffer.data(), buffer.size());
 	std::cout << "send_size = " << send_size << "\n";
 	if (send_size < 0)
@@ -487,7 +494,10 @@ void	Connection::ProcessCgi()
 		pipein = cgi.GetPipeIn();
 		pipeout = cgi.GetPipeOut();
 		std::cout << "cgi setup done\n";
-		progress = TO_CGI;
+		utils::AddReadEvent(kq, pipein);
+		utils::AddWriteEvent(kq, pipeout);
+		response.BodyResize(request.GetBody().size() + 700);
+		progress = CGI;
 	}
 	else
 	{
@@ -499,27 +509,29 @@ void	Connection::ProcessCgi()
 void	Connection::ReadCgi()
 {
 	std::string buff;
-	ssize_t	maxsize = 65535;
+	ssize_t	maxsize = 655360;
 	buff.resize(maxsize);
 	ssize_t readsize = read(pipein, &buff[0], maxsize);
 	if (readsize < 0)
 	{
 		std::cout << "readcgi error\n";
+		std::cout << errno << "\n";
 		response.make_response_50x(500);
 		progress = TO_CLIENT;
 		return ;
 	}
-	else if (readsize == maxsize)
+	else if (readsize == 0)
 	{
-		std::cout << "readcgi again << "<<readsize<<"\n";
+		std::cout << "readcgi done << "<<readsize<<"\n";
 		response.AddBody(buff, readsize);
+		utils::RemoveReadEvent(kq, pipein);
+		progress = TO_CLIENT;
 		return ;
 	}
 	else
 	{
-		std::cout << "readcgi done << "<<readsize<<"\n";
+		std::cout << "readcgi again << "<<readsize<<"\n";
 		response.AddBody(buff, readsize);
-		progress = TO_CLIENT;
 		return ;
 	}
 }
@@ -539,15 +551,17 @@ void	Connection::SendCgi()
 	}
 	else if (!request.GetBody().empty())
 	{
-		std::cout << "send cgi again << "<<writesize<<"\n";
+		std::cout << "send cgi again: write success this time by "<<writesize<<"\n";
 		request.CutBody(writesize);
+		std::cout << "left in reqestbody: " << request.GetBody().size() << "\n";
 		return ;
 	}
 	else
 	{
-		std::cout << "send cgi done << "<<writesize<<"\n";
+		std::cout << "send cgi done: write success this time by "<<writesize<<"\n";
 		request.CutBody(writesize);
-		progress = FROM_CGI;
+		utils::RemoveWriteEvent(kq, pipeout);
+		close(pipeout);
 		return ;
 	}
 }
@@ -617,3 +631,7 @@ Request&	Connection::GetRequest()
 	return request;
 }
 
+int		Connection::GetKq()
+{
+	return kq;
+}

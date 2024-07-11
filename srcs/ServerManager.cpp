@@ -72,7 +72,7 @@ bool		ServerManager::RunServer(Config* config)
 					std::cout << "sock_serv: " << sock_serv << "\n";
 					if (InitClientSocket(kq, sock_serv, change_event, sock_client, addr_client, sizeof(addr_client)) == false)
 						continue ; // 실패한 client를 제외한 나머지 이벤트에 대한 처리를 위해 continue
-					Connection *con = new Connection(sock_client, addr_client, config, &session);
+					Connection *con = new Connection(kq, sock_client, addr_client, config, &session);
 					v_connection.push_back(con);
 					std::cout << "\n----after push_back----\n";
 					// managerstatus();
@@ -304,58 +304,6 @@ void		ServerManager::RemoveConnectionMap(int fd)
 	std::cout << "map erased "<< erasesize << "times for fd" << fd << ", map size: "<< connectionmap.size() << "\n";
 }
 
-void		ServerManager::AddWriteEvent(int client_socket_fd)
-{
-	struct kevent change_event;
-	EV_SET(&change_event, client_socket_fd, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
-	std::cout << "kq: " << kq << "\n";
-	int ret = kevent(kq, &change_event, 1, NULL, 0, NULL);
-	if (ret < 0)
-	{
-		std::cout << "fail to add writeevent\n";
-		std::cout << errno << "\n";
-	}
-}
-
-void		ServerManager::RemoveWriteEvent(int client_socket_fd)
-{
-	struct kevent change_event;
-	EV_SET(&change_event, client_socket_fd, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
-	std::cout << "try to remove event: fd: " << client_socket_fd << "\n";
-	int ret = kevent(kq, &change_event, 1, NULL, 0, NULL);
-	if (ret < 0)
-	{
-		std::cout << "fail to remove writeevent\n";
-		std::cout << errno << "\n";
-	}
-}
-
-void		ServerManager::AddReadEvent(int fd)
-{
-	struct kevent change_event;
-	EV_SET(&change_event, fd, EVFILT_READ, EV_ENABLE | EV_ADD, 0, 0, NULL);
-	std::cout << "kq: " << kq << "\n";
-	int ret = kevent(kq, &change_event, 1, NULL, 0, NULL);
-	if (ret < 0)
-	{
-		std::cout << "fail to add read event\n";
-		std::cout << errno << "\n";
-	}
-}
-
-void		ServerManager::RemoveReadEvent(int fd)
-{
-	struct kevent change_event;
-	EV_SET(&change_event, fd, EVFILT_READ, EV_DELETE, 0, 0, NULL);
-	std::cout << "kq: " << kq << "\n";
-	int ret = kevent(kq, &change_event, 1, NULL, 0, NULL);
-	if (ret < 0)
-	{
-		std::cout << "fail to remove read event\n";
-		std::cout << errno << "\n";
-	}
-}
-
 void	ServerManager::managerstatus()
 {
 	std::cout << "------------------------------------------\n";
@@ -390,35 +338,25 @@ void	ServerManager::AfterProcess(Connection* connection)
 	}
 	else if (connection->GetProgress() == FROM_FILE)
 	{
-		RemoveReadEvent(connection->GetClientSocketFd());
-		AddReadEvent(connection->GetFileFd());
+		utils::RemoveReadEvent(kq, connection->GetClientSocketFd());
+		utils::AddReadEvent(kq, connection->GetFileFd());
 		AddConnectionMap(connection->GetFileFd(), connection);
 	}
 	else if (connection->GetProgress() == TO_CLIENT)
 	{
-		RemoveReadEvent(connection->GetClientSocketFd());
+		utils::RemoveReadEvent(kq, connection->GetClientSocketFd());
 		if (connection->GetFileFd())
-			RemoveReadEvent(connection->GetFileFd());
+			utils::RemoveReadEvent(kq, connection->GetFileFd());
 		if (connection->GetPipein())
 		{
-			RemoveReadEvent(connection->GetPipein());
+			utils::RemoveReadEvent(kq, connection->GetPipein());
 		}
-		AddWriteEvent(connection->GetClientSocketFd());
+		utils::AddWriteEvent(kq, connection->GetClientSocketFd());
 		AddConnectionMap(connection->GetClientSocketFd(), connection);
 	}
-	else if (connection->GetProgress() == TO_CGI)
+	else if (connection->GetProgress() == CGI)
 	{
-		RemoveReadEvent(connection->GetClientSocketFd());
-		AddWriteEvent(connection->GetPipeout());
-		// AddReadEvent(connection->GetPipein());
 		AddConnectionMap(connection->GetPipeout(), connection);
-	}
-	else if (connection->GetProgress() == FROM_CGI)
-	{
-		AddReadEvent(connection->GetPipein());
-		AddConnectionMap(connection->GetPipein(), connection);
-		// AddWriteEvent(connection->GetPipeout());
-		RemoveWriteEvent(connection->GetPipeout());
 		AddConnectionMap(connection->GetPipein(), connection);
 	}
 }

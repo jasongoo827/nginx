@@ -327,6 +327,58 @@ namespace utils
 		else
 			return "other";
 	}
+
+	void	AddWriteEvent(int kq, int client_socket_fd)
+	{
+		struct kevent change_event;
+		EV_SET(&change_event, client_socket_fd, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
+		std::cout << "kq: " << kq << "\n";
+		int ret = kevent(kq, &change_event, 1, NULL, 0, NULL);
+		if (ret < 0)
+		{
+			std::cout << "fail to add writeevent\n";
+			std::cout << errno << "\n";
+		}
+	}
+
+	void	RemoveWriteEvent(int kq, int client_socket_fd)
+	{
+		struct kevent change_event;
+		EV_SET(&change_event, client_socket_fd, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
+		std::cout << "try to remove event: fd: " << client_socket_fd << "\n";
+		int ret = kevent(kq, &change_event, 1, NULL, 0, NULL);
+		if (ret < 0)
+		{
+			std::cout << "fail to remove writeevent\n";
+			std::cout << errno << "\n";
+		}
+	}
+
+	void	AddReadEvent(int kq, int fd)
+	{
+		struct kevent change_event;
+		EV_SET(&change_event, fd, EVFILT_READ, EV_ENABLE | EV_ADD, 0, 0, NULL);
+		std::cout << "kq: " << kq << "\n";
+		int ret = kevent(kq, &change_event, 1, NULL, 0, NULL);
+		if (ret < 0)
+		{
+			std::cout << "fail to add read event\n";
+			std::cout << errno << "\n";
+		}
+	}
+
+	void	RemoveReadEvent(int kq, int fd)
+	{
+		struct kevent change_event;
+		EV_SET(&change_event, fd, EVFILT_READ, EV_DELETE, 0, 0, NULL);
+		std::cout << "kq: " << kq << "\n";
+		int ret = kevent(kq, &change_event, 1, NULL, 0, NULL);
+		if (ret < 0)
+		{
+			std::cout << "fail to remove read event\n";
+			std::cout << errno << "\n";
+		}
+	}
 }
 
 bool	operator==(const sockaddr_in& lhs, const sockaddr_in& rhs)

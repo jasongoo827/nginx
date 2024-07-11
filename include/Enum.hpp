@@ -39,12 +39,11 @@ enum LocateVar
 enum CurrentProgress
 {
 	FROM_CLIENT,
-	TO_CGI,
-	FROM_CGI,
+	CGI,
 	FROM_FILE,
 	TO_CLIENT,
 	END_CONNECTION,
-	READ_CONTINUE
+	READ_CONTINUE,
 };
 
 #endif
