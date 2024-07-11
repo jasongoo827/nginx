@@ -99,7 +99,6 @@ void	Connection::MainProcess(struct kevent& event)
 	else if (progress == CGI && event.filter == EVFILT_READ)
 	{
 		ReadCgi();
-		response.CombineMessage();
 		return ;
 	}
 	else if (progress == FROM_FILE && event.filter == EVFILT_READ)

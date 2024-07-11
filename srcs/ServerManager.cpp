@@ -96,7 +96,12 @@ bool		ServerManager::RunServer(Config* config)
 					}
 					Connection* connection = connectionmap[static_cast<int>(events[i].ident)];
 					std::cout << "socket_fd: " << connection->GetClientSocketFd() << '\n';
+					struct timeval time1;
+					struct timeval time2;
+					gettimeofday(&time1, NULL);
 					connection->MainProcess(events[i]);
+					gettimeofday(&time2, NULL);
+					std::cout << "-----time------------------ "<< time2.tv_sec * 1000000 + time2.tv_usec - time1.tv_sec * 1000000 - time1.tv_usec << "\n";
 					AfterProcess(connection);
 				}
 			}
