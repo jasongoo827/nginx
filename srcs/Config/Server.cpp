@@ -5,8 +5,8 @@
 Server::Server(): dup_mask(0) {}
 
 Server::Server(const Server& other): locate_vec(other.locate_vec), error_page(other.error_page),
-host_ip(other.host_ip), server_name(other.server_name), cgi_type(other.cgi_type), cgi_vec(other.cgi_vec), port(other.port),
-client_body_size(other.client_body_size), file_path(other.file_path), dup_mask(other.dup_mask) {}
+host_ip(other.host_ip), server_name(other.server_name), port(other.port),
+file_path(other.file_path), dup_mask(other.dup_mask) {}
 
 Server& Server::operator=(const Server& rhs)
 {
@@ -16,10 +16,7 @@ Server& Server::operator=(const Server& rhs)
 	error_page = rhs.error_page;
 	host_ip = rhs.host_ip;
 	server_name = rhs.server_name;
-	cgi_type = rhs.cgi_type;
-	cgi_vec = rhs.cgi_vec;
 	port = rhs.port;
-	client_body_size = rhs.client_body_size;
 	file_path = rhs.file_path;
 	dup_mask = rhs.dup_mask;
 	return (*this);
@@ -27,7 +24,7 @@ Server& Server::operator=(const Server& rhs)
 
 Server::~Server()
 {
-	cgi_vec.clear();
+	// cgi_vec.clear();
 	locate_vec.clear();
 	error_page.clear();
 }
@@ -53,14 +50,12 @@ Status Server::ParseServerBlock(std::string& server_block)
 			status = ParseServerName(str);
 		else if (utils::find(str, "error_page"))
 			status = ParseErrorPage(str);
-		else if (utils::find(str, "cgi"))
-			status = ParseCgiType(str);
-		else if (utils::find(str, "client_body_size"))
-			status = ParseClientSize(str);
 		else if (utils::find(str, "filepath"))
 			status = ParseFilePath(str);
 		else if (utils::find(str, "location"))
 			status = ParseLocateVariable(str, iss);
+		else
+			return Status::Error("wrong config option error");
 		if (!status.ok())
 			return Status::Error(status.message());
 	}
@@ -112,26 +107,26 @@ Status	Server::ParseErrorPage(std::string& str)
 	return status;
 }
 
-Status Server::ParseCgiType(std::string& str)
-{
-	if (dup_mask & CGI_EXT)
-		return Status::Error("server name duplicate error");
-	dup_mask |= CGI_EXT;
-	std::string cmp("cgi");
-	return utils::ParseVariable(this->cgi_vec, str, cmp);
-	// return utils::ParseVariable(this->cgi_type, str);
-}
+// Status Server::ParseCgiType(std::string& str)
+// {
+// 	if (dup_mask & CGI_EXT)
+// 		return Status::Error("server name duplicate error");
+// 	dup_mask |= CGI_EXT;
+// 	std::string cmp("cgi");
+// 	return utils::ParseVariable(this->cgi_vec, str, cmp);
+// 	// return utils::ParseVariable(this->cgi_type, str);
+// }
 
-Status	Server::ParseClientSize(std::string& str)
-{
-	if (dup_mask & CLIENT_SIZE)
-		return Status::Error("client size duplicate error");
-	dup_mask |= CLIENT_SIZE;
-	Status status = utils::ParseVariable(this->client_body_size, str);
-	if (status.ok() && (this->client_body_size < 0 || this->client_body_size > 1000000 || this->client_body_size > std::numeric_limits<int>::max() || this->client_body_size < std::numeric_limits<int>::min()))
-		return Status::Error("Parsing error");
-	return status;
-}
+// Status	Server::ParseClientSize(std::string& str)
+// {
+// 	if (dup_mask & CLIENT_SIZE)
+// 		return Status::Error("client size duplicate error");
+// 	dup_mask |= CLIENT_SIZE;
+// 	Status status = utils::ParseVariable(this->client_body_size, str);
+// 	if (status.ok() && (this->client_body_size < 0 || this->client_body_size > 1000000 || this->client_body_size > std::numeric_limits<int>::max() || this->client_body_size < std::numeric_limits<int>::min()))
+// 		return Status::Error("Parsing error");
+// 	return status;
+// }
 
 Status	Server::ParseFilePath(std::string& str)
 {
@@ -198,25 +193,25 @@ const std::string& Server::GetServerName(void) const
 	return server_name;
 }
 
-const std::string& Server::GetCgiType(void) const
-{
-	return cgi_type;
-}
+// const std::string& Server::GetCgiType(void) const
+// {
+// 	return cgi_type;
+// }
 
-const std::vector<std::string>&	Server::GetCgiVec(void) const
-{
-	return cgi_vec;
-}
+// const std::vector<std::string>&	Server::GetCgiVec(void) const
+// {
+// 	return cgi_vec;
+// }
 
 const ssize_t& Server::GetPort(void) const
 {
 	return port;
 }
 
-const ssize_t& Server::GetClientBodySize(void) const
-{
-	return client_body_size;
-}
+// const ssize_t& Server::GetClientBodySize(void) const
+// {
+// 	return client_body_size;
+// }
 
 const std::string& Server::GetFilePath(void) const
 {
@@ -228,17 +223,18 @@ void Server::PrintServerInfo(void)
 	std::cout << "\nSERVER INFO" << '\n';
 	std::cout << "listen: " << this->port << '\n';
 	std::cout << "server_name: " << this->server_name << '\n';
+	std::cout << "error_page: ";
 	for (std::map<int, std::string>::iterator it = error_page.begin(); it != error_page.end(); ++it)
-		std::cout << "error_page: " << it->first << "  " << it->second << '\n';
-	std::cout << "client_body_size: " << this->client_body_size << '\n';
+		std::cout << it->first << " " << it->second << "  ";
+	std::cout << '\n';
+	// std::cout << "client_body_size: " << this->client_body_size << '\n';
 	// std::cout << "cgi type: " << this->cgi_type << '\n';
-	std::cout << "cgi type: ";
-	for (size_t i = 0; i < this->cgi_vec.size(); ++i)
-	{
-		std::cout << cgi_vec[i] << ' ';
-	}
+	// for (size_t i = 0; i < this->cgi_vec.size(); ++i)
+	// {
+	// 	std::cout << cgi_vec[i] << ' ';
+	// }
 	std::cout << "\nfilepath: " << this->file_path;
 	for (size_t i = 0; i < this->locate_vec.size(); ++i)
 		this->locate_vec[i].PrintLocateInfo();
-	std::cout << '\n';
+	std::cout << "\n\n";
 }

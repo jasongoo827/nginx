@@ -29,6 +29,7 @@ namespace utils
 	Status 						ParseVariable(std::string& dst, std::string& src);
 	Status 						ParseVariable(ssize_t& dst, std::string& src);
 	Status 						ParseVariable(std::map<int, std::string>& dst, std::string& src);
+	Status 						ParseVariable(std::map<std::string, std::string>& dst, std::string& src);
 	Status 						ParseVariable(std::vector<std::string>& dst, std::string& src, std::string& cmp);
 	Status 						ParseVariable(std::pair<int, std::string>& dst, std::string& src);
 	bool						CheckFilePath(std::string& file_path);

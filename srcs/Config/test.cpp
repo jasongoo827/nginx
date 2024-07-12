@@ -1,15 +1,8 @@
-#include "ServerManager.hpp"
 #include "Config.hpp"
 #include "Status.hpp"
-#include "Parser.hpp"
-#include "Request.hpp"
-#include "Response.hpp"
-
-void	InitializeReasonmap();
 
 int main(int argc, char *argv[], char *envp[])
 {
-	InitializeReasonmap();
 	(void)envp;
 	Config config;
 	if (argc == 2)
@@ -34,7 +27,4 @@ int main(int argc, char *argv[], char *envp[])
 		}
 		config.PrintConfigInfo();
 	}
-	// std::cout << "config done" << std::endl;
-	// ServerManager	servermanager;
-	// servermanager.RunServer(&config);
 }

@@ -65,6 +65,21 @@ namespace utils
 		return Status::OK();
 	}
 
+	Status ParseVariable(std::map<std::string, std::string>& dst, std::string& src)
+	{
+		std::vector<std::string> token_vec = SplitToVector(src);
+		if (token_vec.size() < 2)
+			return Status::Error("Parsing error");
+		for (size_t i = 1; i < token_vec.size(); ++i)
+		{
+			std::vector<std::string> cgi_vec = SplitToVector(token_vec[i], ':');
+			if (cgi_vec.size() != 2)
+				return Status::Error("Parsing error");
+			dst.insert(std::make_pair(cgi_vec.front(), cgi_vec.back()));
+		}
+		return Status::OK();
+	}
+
 	Status 	ParseVariable(std::vector<std::string>& dst, std::string& src, std::string& cmp)
 	{
 		std::vector<std::string> token_vec = SplitToVector(src);
