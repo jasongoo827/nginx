@@ -87,6 +87,8 @@ Status Config::ParseConfig(std::string& file)
 	}
 	if (this->server_vec.size() == 0)
 		return Status::Error("no server error");
+	if (CheckPortDup())
+		return Status::Error("port duplicate error");
 	return Status::OK();
 }
 
@@ -127,6 +129,16 @@ std::string Config::ExtractServerBlock(std::istringstream& iss, std::string& fir
 		server_block += "\n";
 	}
 	return server_block;
+}
+
+bool	Config::CheckPortDup(void)
+{
+	for (size_t i = 0; i < this->server_vec.size() - 1; ++i)
+	{
+		if (this->server_vec[i].GetPort() == this->server_vec[i + 1].GetPort())
+			return true;
+	}
+	return false;
 }
 
 Status Config::ParseServerVariable(std::string& file, std::istringstream& iss)
