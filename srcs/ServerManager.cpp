@@ -419,6 +419,7 @@ void	ServerManager::AfterProcess(Connection* connection)
 			CloseConnectionMap(connection->GetPipein());
 			connection->SetPipein(0);
 		}
+		connection->CheckExitCgi();
 		utils::AddWriteEvent(kq, connection->GetClientSocketFd());
 		std::cout << "AddWriteEvent2 fd: " << connection->GetClientSocketFd() << '\n';
 		utils::RemoveReadEvent(kq, connection->GetClientSocketFd());

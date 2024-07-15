@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <cstdlib>
 #include <Session.hpp>
+#include <signal.h>
 
 Connection::Connection(int kq, int clinet_socket_fd, sockaddr_in client_socket_addr, Config* config_ptr, Session* session)
 : request(), response(), cgi()
@@ -629,6 +630,27 @@ void	Connection::ReadFile()
 		progress = COMBINE;
 		std::cout << readsize << ": ReadFile done\n";
 		return ;
+	}
+}
+
+void	Connection::CheckExitCgi()
+{
+	int	status;
+
+	if (cgi.GetPid() != 0)
+	{
+		waitpid(cgi.GetPid(), &status, WNOHANG);
+		if (!WIFEXITED(status))
+		{
+			if (kill(cgi.GetPid(), SIGINT) == -1)
+			{
+				std::cout << "-------------kill failed------------------";
+				response.make_response_50x(500);
+				progress = COMBINE;
+			}
+		}
+		// std::cout << "-------------killed child------------------";
+		cgi.SetPid(0);
 	}
 }
 

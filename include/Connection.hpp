@@ -55,6 +55,8 @@ public:
 	void						SetProgress(enum CurrentProgress progress);
 	void						UpdateTimeval();
 	void						Cleaner();
+	void						CheckExitCgi();
+
 
 private:
 	int						kq;

@@ -13,8 +13,11 @@ public:
 	~Cgi();
 	Cgi& operator=(const Cgi& ref);
 
-	int	GetPipeIn();
-	int	GetPipeOut();
+	int		GetPipeIn();
+	int		GetPipeOut();
+	int		GetPid();
+	void	SetPid(int pid);
+
 
 	void	setEnv(Request& req, const Server& ser);
 	Status	setPipe();
@@ -23,11 +26,13 @@ public:
 	void	Cleaner();
 
 
+
 private:
 	std::map<std::string, std::string>		envmap;
 	std::vector<char*>						envp;
 	int										pipe_in[2];
 	int										pipe_out[2];
+	int										pid;
 };
 
 

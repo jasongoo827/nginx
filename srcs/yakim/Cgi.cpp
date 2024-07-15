@@ -12,6 +12,7 @@ Cgi::Cgi()
 	pipe_in[1] = 0;
 	pipe_out[0] = 0;
 	pipe_out[1] = 0;
+	pid = 0;
 }
 
 Cgi::Cgi(const Cgi& ref)
@@ -20,7 +21,7 @@ Cgi::Cgi(const Cgi& ref)
 	pipe_in[1] = 0;
 	pipe_out[0] = 0;
 	pipe_out[1] = 0;
-	(void)ref;
+	pid = ref.pid;
 }
 
 Cgi::~Cgi()
@@ -35,10 +36,9 @@ Cgi& Cgi::operator=(const Cgi& ref)
 	pipe_in[1] = 0;
 	pipe_out[0] = 0;
 	pipe_out[1] = 0;
-	(void)ref;
+	pid = ref.pid;
 	return (*this);
 }
-
 
 int	Cgi::GetPipeIn()
 {
@@ -48,6 +48,16 @@ int	Cgi::GetPipeIn()
 int	Cgi::GetPipeOut()
 {
 	return (pipe_out[1]);
+}
+
+int	Cgi::GetPid()
+{
+	return (pid);
+}
+
+void	Cgi::SetPid(int pid)
+{
+	this->pid = pid;
 }
 
 
@@ -148,6 +158,7 @@ Status	Cgi::CgiExec(std::string& path)
 	{
 		close(pipe_in[1]);
 		close(pipe_out[0]);
+		this->pid = pid;
 	}
 	return (Status::OK());
 }
@@ -178,4 +189,5 @@ void    Cgi::Cleaner()
     pipe_in[1] = 0;
     pipe_in[0] = 0;
     pipe_in[1] = 0;
+	pid = 0;
 }
