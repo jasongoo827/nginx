@@ -77,7 +77,7 @@ void	Parser::ParseBody(Request &request)
 			int	cur_size = request.GetBytesToRead();
 			if (cur_size == 0)
 				cur_size = utils::ReadChunkSize(data);
-			std::cout << '\n' << cur_size << '\n';
+			// std::cout << '\n' << cur_size << '\n';
 			while (cur_size > 0)
 			{
 				if (data_size > 150000000 || cur_size > 10000000)
@@ -88,7 +88,7 @@ void	Parser::ParseBody(Request &request)
 				tmp_str = utils::ReadData(data, cur_size);
 				data_size += cur_size;
 				body += tmp_str;
-				std::cout << "cur_size: " << cur_size << ", tmp_str size: " << tmp_str.size() << '\n';
+				// std::cout << "cur_size: " << cur_size << ", tmp_str size: " << tmp_str.size() << '\n';
 				request.SetBytesToRead(cur_size - tmp_str.size());
 				if (request.GetBytesToRead() != 0)
 					break ;
@@ -179,3 +179,8 @@ void	Parser::ParseTrailer(Request &request)
 		request_header.insert(std::make_pair(trailer_name, trailer_value));
 	}
 };
+
+void	Parser::Cleaner()
+{
+	data = "";
+}

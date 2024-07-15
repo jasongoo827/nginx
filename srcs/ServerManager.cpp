@@ -56,10 +56,10 @@ bool		ServerManager::RunServer(Config* config)
 			if (CheckEvent(kq, events, event_count, sock_serv) == false)
 			{
 				std::cout << "no event occured\n";
-				break ;
+				continue ;
 			}
 			std::cout << "event occured " << event_count << "\n";
-			for (int i = 0; i < 1; ++i)
+			for (int i = 0; i < event_count; ++i)
 			{
 				if (events[i].filter == EVFILT_WRITE)
 					std::cout << events[i].ident << ", write, " << events[i].flags << "\n\n";
@@ -82,11 +82,10 @@ bool		ServerManager::RunServer(Config* config)
 					std::cout << "client accepted\n";
 					std::cout << sock_client << "\n";
 				}
-				else
+				else if (!(events[i].flags & EV_EOF) || (connectionmap.find(static_cast<int>(events[i].ident)) != connectionmap.end() && (events[i].filter == EVFILT_READ && connectionmap[static_cast<int>(events[i].ident)]->GetProgress() == CGI)))
 				{
 					std::cout << "\n----client event----\n";
 					// managerstatus();
-
 					std::cout << "before MainProcess: events.ident= " << events[i].ident << "\n";
 					std::cout << "connectionmap size = " << connectionmap.size() << "\n";
 					if (connectionmap.find(static_cast<int>(events[i].ident)) == connectionmap.end())
@@ -97,10 +96,39 @@ bool		ServerManager::RunServer(Config* config)
 					Connection* connection = connectionmap[static_cast<int>(events[i].ident)];
 					std::cout << "socket_fd: " << connection->GetClientSocketFd() << '\n';
 					connection->MainProcess(events[i]);
+					// progress = cgi
+					connection->UpdateTimeval();
 					AfterProcess(connection);
 				}
+				else if (events[i].flags & EV_EOF && events[i].filter == EVFILT_READ)
+				{
+					size_t	idx = 0;
+					for (idx = 0; idx < v_connection.size(); idx++)
+					{
+						if (v_connection[idx]->GetClientSocketFd() == static_cast<int>(events[i].ident))
+							break ;
+					}
+					if (idx == v_connection.size())
+						CloseConnectionMap(events[i].ident);
+					else
+					{
+						int	count = 0;
+						for (std::map<int, Connection*>::iterator it = connectionmap.begin(); it != connectionmap.end(); ++it)
+						{
+							if (it->second->GetClientSocketFd() == static_cast<int>(events[i].ident))
+								count++;
+						}
+						if (count == 1)
+						{
+							CloseConnectionMap(events[i].ident);
+							CloseVConnection(events[i].ident);
+						}
+					}
+				}
 			}
-			managerstatus();
+			// managerstatus();
+			std::cout << "fd usage: " << connectionmap.size() << '\n';
+			std::cout << "client units: " << v_connection.size() << '\n';
 			CheckConnectionTimeout();
 		}
 		CloseAllConnection();
@@ -133,7 +161,7 @@ bool	ServerManager::InitServerSocket(int &sock_serv, sockaddr_in &addr_serv)
 	}
 	/* 서버가 사용하는 소켓을 재활용 가능하도록 설정 */
 	int enable = 1;
-	if (setsockopt(sock_serv, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
+	if (setsockopt(sock_serv, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) < 0)
 	{
 		std::cerr << "setsockopt fail\n";
 		close(sock_serv);
@@ -147,7 +175,7 @@ bool	ServerManager::InitServerSocket(int &sock_serv, sockaddr_in &addr_serv)
 		return (false);
 	}
 	/* 서버 소켓에 대한 통신 활성화 */
-	if (listen(sock_serv, 60) == -1)// 원래값: 16
+	if (listen(sock_serv, 2048) == -1)
 	{
 		std::cerr << "listen error\n";
 		close(sock_serv);
@@ -182,7 +210,7 @@ bool	ServerManager::InitClientSocket(int &kq, int &sock_serv, struct ::kevent &c
 	}
 	/* 소켓을 재활용 가능하도록 설정 */
 	int enable = 1;
-	if (setsockopt(sock_client, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
+	if (setsockopt(sock_client, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) < 0)
 	{
 		std::cerr << "setsockopt fail\n";
 		close(sock_client);
@@ -240,44 +268,41 @@ bool	ServerManager::CheckEvent(int &kq, struct ::kevent *events, int &event_coun
 	return (true);
 }
 
-void	ServerManager::CloseConnection(int sock_client)
+void	ServerManager::CloseVConnection(int fd)
 {
 	struct ::kevent change_event;
 
-	std::cout << "Close connection for fd: " << sock_client << "\n";
-	EV_SET(&change_event, sock_client, EVFILT_READ, EV_DELETE, 0, 0, NULL);
+	std::cout << "Close connection for fd: " << fd << "\n";
+	EV_SET(&change_event, fd, EVFILT_READ, EV_DELETE, 0, 0, NULL);
 	kevent(kq, &change_event, 1, NULL, 0, NULL);
-	EV_SET(&change_event, sock_client, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
+	EV_SET(&change_event, fd, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
 	kevent(kq, &change_event, 1, NULL, 0, NULL);
-	std::cout << "remove read event\n";
-	std::cout <<"v_connection size: "<< v_connection.size() << "\n";
+	RemoveConnectionMap(fd);
 	for (size_t i = 0; i < v_connection.size(); i++)
 	{
-		if (v_connection[i]->GetClientSocketFd() == sock_client)
+		if (v_connection[i]->GetClientSocketFd() == fd)
 		{
-			RemoveConnectionMap(v_connection[i]->GetClientSocketFd());
-			std::cout << "filefd connected: " << i << v_connection[i]->GetFileFd() << "\n";
-			if (v_connection[i]->GetFileFd())
-			{
-				RemoveConnectionMap(v_connection[i]->GetFileFd());
-				close(v_connection[i]->GetFileFd());
-			}
-			if (v_connection[i]->GetPipein())
-			{
-				RemoveConnectionMap(v_connection[i]->GetPipein());
-				close(v_connection[i]->GetPipein());
-			}
-			if (v_connection[i]->GetPipeout())
-			{
-				RemoveConnectionMap(v_connection[i]->GetPipeout());
-				close(v_connection[i]->GetPipeout());
-			}
+			v_connection[i]->GetCgi().Cleaner();
 			delete v_connection[i];
 			v_connection.erase(v_connection.begin() + i);
 		}
 	}
-	close(sock_client);
-	std::cout << "close connection " << sock_client << "\n";
+	close(fd);
+	std::cout << "close connection " << fd << "\n";
+}
+
+void	ServerManager::CloseConnectionMap(int fd)
+{
+	struct ::kevent change_event;
+
+	std::cout << "Close connection for fd: " << fd << ", connection : " << connectionmap[fd]->GetClientSocketFd() << "\n";
+	EV_SET(&change_event, fd, EVFILT_READ, EV_DELETE, 0, 0, NULL);
+	kevent(kq, &change_event, 1, NULL, 0, NULL);
+	EV_SET(&change_event, fd, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
+	kevent(kq, &change_event, 1, NULL, 0, NULL);
+	RemoveConnectionMap(fd);
+	close(fd);
+	std::cout << "close connection " << fd << "\n";
 }
 
 void	ServerManager::CloseAllConnection()
@@ -318,12 +343,29 @@ void	ServerManager::managerstatus()
 
 void	ServerManager::CheckConnectionTimeout()
 {
+	std::time_t now;
+	std::time(&now);
 	for(size_t i = 0; i < v_connection.size(); i++)
 	{
-		std::time_t now;
-		std::time(&now);
-		if (std::difftime(v_connection[i]->GetTimeval(), now) > 30)
-			CloseConnection(v_connection[i]->GetClientSocketFd());
+		if (std::difftime(now, v_connection[i]->GetTimeval()) > 3)
+		{
+			if (v_connection[i]->GetFileFd())
+			{
+				CloseConnectionMap(v_connection[i]->GetFileFd());
+				v_connection[i]->SetFileFd(0);
+			}
+			else if (v_connection[i]->GetPipein())
+			{
+				CloseConnectionMap(v_connection[i]->GetPipein());
+				v_connection[i]->SetPipein(0);
+			}
+			else if (v_connection[i]->GetPipeout())
+			{
+				CloseConnectionMap(v_connection[i]->GetPipeout());
+				v_connection[i]->SetPipeout(0);
+			}
+			CloseVConnection(v_connection[i]->GetClientSocketFd());
+		}
 	}
 }
 
@@ -332,18 +374,33 @@ void	ServerManager::AfterProcess(Connection* connection)
 	if (connection->GetProgress() == END_CONNECTION)
 	{
 		std::cout << "****connection end****\n";
-		
-		CloseConnection(connection->GetClientSocketFd());
-		connection->SetProgress(FROM_CLIENT);
+		if (connection->GetRequest().FindValueInHeader("connection") == "close")
+			CloseVConnection(connection->GetClientSocketFd());
+		else
+		{
+			utils::RemoveWriteEvent(kq, connection->GetClientSocketFd());
+			std::cout << "RemoveWriteEvent1 fd: " << connection->GetClientSocketFd() << '\n';
+			utils::AddReadEvent(kq, connection->GetClientSocketFd());
+			std::cout << "AddReadEvent1 fd: " << connection->GetClientSocketFd() << '\n';
+			Scaffold(connection);
+		}
 	}
 	else if (connection->GetProgress() == FROM_FILE)
 	{
-		utils::RemoveReadEvent(kq, connection->GetClientSocketFd());
 		utils::AddReadEvent(kq, connection->GetFileFd());
+		std::cout << "AddReadEvent3 fd: " << connection->GetFileFd() << '\n';
 		AddConnectionMap(connection->GetFileFd(), connection);
 	}
 	else if (connection->GetProgress() == TO_CLIENT)
 	{
+		if (connection->GetPipeout())
+		{
+			utils::RemoveWriteEvent(kq, connection->GetPipeout());
+			std::cout << "RemoveWriteEvent2 fd: " << connection->GetPipeout() << '\n';
+			connection->SetPipeout(0);
+		}
+		utils::AddWriteEvent(kq, connection->GetClientSocketFd());
+		std::cout << "AddWriteEvent3 fd: " << connection->GetClientSocketFd() << '\n';
 	}
 	else if (connection->GetProgress() == CGI)
 	{
@@ -352,14 +409,34 @@ void	ServerManager::AfterProcess(Connection* connection)
 	}
 	else if (connection->GetProgress() == COMBINE)
 	{
-		utils::RemoveReadEvent(kq, connection->GetClientSocketFd());
 		if (connection->GetFileFd())
-			utils::RemoveReadEvent(kq, connection->GetFileFd());
+		{
+			CloseConnectionMap(connection->GetFileFd());
+			connection->SetFileFd(0);
+		}
 		if (connection->GetPipein())
-			utils::RemoveReadEvent(kq, connection->GetPipein());
+		{
+			CloseConnectionMap(connection->GetPipein());
+			connection->SetPipein(0);
+		}
 		utils::AddWriteEvent(kq, connection->GetClientSocketFd());
-		AddConnectionMap(connection->GetClientSocketFd(), connection);
+		std::cout << "AddWriteEvent2 fd: " << connection->GetClientSocketFd() << '\n';
+		utils::RemoveReadEvent(kq, connection->GetClientSocketFd());
+		std::cout << "RemoveReadEvent3 fd: " << connection->GetClientSocketFd() << '\n';
 		connection->GetResponse().CombineMessage();
 		connection->SetProgress(TO_CLIENT);
 	}
+}
+
+void	ServerManager::Scaffold(Connection* connection)
+{
+	connection->GetCgi().Cleaner();
+	connection->GetParser().Cleaner();
+	connection->GetRequest().Cleaner();
+	connection->GetResponse().Cleaner();
+	connection->Cleaner();
+	utils::RemoveReadEvent(kq, connection->GetClientSocketFd());
+	std::cout << "RemoveReadEvent2 fd: " << connection->GetClientSocketFd() << '\n';
+	utils::AddReadEvent(kq, connection->GetClientSocketFd());
+	std::cout << "AddReadEvent2 fd: " << connection->GetClientSocketFd() << '\n';
 }

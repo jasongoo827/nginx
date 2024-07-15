@@ -39,7 +39,8 @@ Status Config::ReadConfig(std::string& file)
 	infile.seekg(0, std::ios::end);
 	size_t size = infile.tellg();
 	infile.seekg(0, std::ios::beg);
-	char *buffer = new char[size];
+	char *buffer = new char[size + 1];
+	memset(buffer, 0, size + 1);
 	if (!infile.read(buffer, size))
 	{
 		infile.close();

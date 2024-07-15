@@ -102,3 +102,14 @@ const std::string	Request::FindValueInHeader(const std::string &key)
 		return (this->header[key]);
 	return ("");
 }
+
+void	Request::Cleaner()
+{
+	method = GET;
+	url = "";
+	version = "";
+	header.clear();
+	body = "";
+	status = READ_STARTLINE;
+	bytes_to_read = 0;
+}
