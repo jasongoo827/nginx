@@ -151,7 +151,6 @@ void	Response::AddBasicHeader()
 {
 	header["Server"] = "nginx/0.1";//
 	header["Date"] = utils::getTime();
-	header["Connection"] = "close";
 }
 
 // void	Response::AddCookieHeader()
@@ -214,6 +213,7 @@ void	Response::CombineMessage()
 	ss << "\r\n";
 	ss << body;
 	message = ss.str();// stringstream 의 str 함수는 새롭게 string 객체를 복사해서 생성, 성능저하 이슈 있을수 있음.
+	std::cout << "message last data + 1: " << (int)message[message.size()] << '\n';
 	message_size = message.size();
 }
 
@@ -292,3 +292,13 @@ void	Response::SplitBodyHeaderData()
 		}
 	}
 };
+
+void    Response::Cleaner()
+{
+    method = GET;
+    status = 200;
+    header.clear();
+    body = "";
+    message = "";
+    message_size = 0;
+}

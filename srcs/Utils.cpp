@@ -277,7 +277,7 @@ namespace utils
 	int	ReadChunkSize(std::string &data)
 	{
 		std::string	res = DivideStrByCRLF(data);
-		std::cout << "res : " << res << '\n';
+		// std::cout << "res : " << res << '\n';
 		int	size = 0;
 		if (res.empty())
 			return -1;

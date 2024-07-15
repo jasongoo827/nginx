@@ -87,7 +87,11 @@ void	Connection::MainProcess(struct kevent& event)
 		if (!session->CheckValidSession(this->GetRequest().FindValueInHeader("cookie")))
 			session->CreateSession();
 		MakeResponse();
-		response.AddHeader("set-cookie", session->GetSendCookie());
+		if (request.FindValueInHeader("connection") == "keep-alive")
+			response.AddHeader("Connection", "keep-alive");
+		else
+			response.AddHeader("Connection", "close");
+		response.AddHeader("Set-Cookie", session->GetSendCookie());
 		response.CombineMessage();
 		return ;
 	}
@@ -104,7 +108,6 @@ void	Connection::MainProcess(struct kevent& event)
 	else if (progress == FROM_FILE && event.filter == EVFILT_READ)
 	{
 		ReadFile();
-		response.CombineMessage();
 		return ;
 	}
 	else if (progress == TO_CLIENT && event.filter == EVFILT_WRITE)
@@ -129,11 +132,18 @@ void	Connection::MainProcess(struct kevent& event)
 void	Connection::ReadClient()
 {
 	char				buffer[1000000];
+	memset(buffer, 0, 1000000);
 	std::cout << client_socket_fd << "\n";
 	ssize_t				nread = read(client_socket_fd, buffer, sizeof(buffer));
 
 	if (nread > 0)
 	{
+		// hyunjunl 작품
+		// EOF 말고는 실제로 출력이 안 됐음 ./webserv 1>/dev/null
+		if (nread == 0)
+			std::cerr << "hyunjunl " << client_socket_fd << std::endl;
+		// 이걸로 소켓 끊어진 통신에 대해서 연결 해제하는 방식으로 구현하는 부분 rfc 문서에서 확인해서 적용해보기
+
 		std::string &parse_data = parser.GetData();
 		parse_data = parse_data + std::string(buffer, nread);
 		// std::cout << "\n\n원본 메시지 토탈\n" << parse_data;
@@ -141,27 +151,27 @@ void	Connection::ReadClient()
 		// {
 		// 	std::cout << "\n이번 메시지 끝문자 : " << (int)buffer[i];
 		// }
-		std::cout << "\n데이터 길이 : " << nread << '\n';
-		std::cout << "이번 읽기 대상\n";
-		if (request.GetStatus() == READ_STARTLINE)
-			std::cout << "READ_STARTLINE\n";
-		if (request.GetStatus() == READ_HEADER)
-			std::cout << "READ_HEADER\n";
-		if (request.GetStatus() == READ_BODY)
-			std::cout << "READ_BODY\n";
-		if (request.GetStatus() == READ_TRAILER)
-			std::cout << "READ_TRAILER\n";
+		// std::cout << "\n데이터 길이 : " << nread << '\n';
+		// std::cout << "이번 읽기 대상\n";
+		// if (request.GetStatus() == READ_STARTLINE)
+		// 	std::cout << "READ_STARTLINE\n";
+		// if (request.GetStatus() == READ_HEADER)
+		// 	std::cout << "READ_HEADER\n";
+		// if (request.GetStatus() == READ_BODY)
+		// 	std::cout << "READ_BODY\n";
+		// if (request.GetStatus() == READ_TRAILER)
+		// 	std::cout << "READ_TRAILER\n";
 		if (parse_data.find("\r\n") != std::string::npos)
 			parser.ParseStartline(request);
-		std::cout << request.GetMethod() << '\n';
+		// std::cout << request.GetMethod() << '\n';
 		if (parse_data.find("\r\n\r\n") != std::string::npos)
 		{
 			parser.ParseHeader(request);
-			std::cout << "CRLFCRLF FOUND\n";
+			// std::cout << "CRLFCRLF FOUND\n";
 		}
 		parser.ParseBody(request);
 		parser.ParseTrailer(request);
-		std::cout << "TRAILER? status : " << request.GetStatus() << '\n';
+		// std::cout << "TRAILER? status : " << request.GetStatus() << '\n';
 		if (request.GetStatus() != READ_DONE && request.GetStatus() != BAD_REQUEST)
 			progress = READ_CONTINUE;
 		else
@@ -169,18 +179,17 @@ void	Connection::ReadClient()
 			std::cout << "\n총 파싱 데이터 len : " << request.GetBody().size() << '\n';
 			// std::cout << "파싱 메시지\n";
 			// std::cout << request.GetMethod() << " " << request.GetUrl() << " " << request.GetVersion() << '\n';
-			std::map<std::string, std::string> tmp_map = request.GetHeader();
-			for (std::map<std::string, std::string>::iterator it = tmp_map.begin(); it != tmp_map.end(); ++it)
-				std::cout << it->first << ": \'" << it->second << "\'\n";
+			// std::map<std::string, std::string> tmp_map = request.GetHeader();
+			// for (std::map<std::string, std::string>::iterator it = tmp_map.begin(); it != tmp_map.end(); ++it)
+			// 	std::cout << it->first << ": \'" << it->second << "\'\n";
 			// std::cout << '\'' << request.GetBody() << "\'\n";
 
-			std::cout << "status = " << request.GetStatus() << '\n';
+			// std::cout << "status = " << request.GetStatus() << '\n';
 		}
 		return ;
 	}
 	else
 	{
-		
 		progress = END_CONNECTION;
 		return ;
 	}
@@ -287,7 +296,10 @@ void	Connection::MakeResponse()
 	if (!locate_ptr->GetRedirectPair().second.empty())
 	{
 		int code = locate_ptr->GetRedirectPair().first;
-		response.make_response_30x(code, locate_ptr->GetRedirectPair().second);
+		if (request.GetBody().size() > 100)
+			response.make_response_40x(413);
+		else
+			response.make_response_30x(code, locate_ptr->GetRedirectPair().second);
 		std::cout << "redirected with" << code << "\n";
 		progress = COMBINE;
 		return ;
@@ -503,7 +515,9 @@ void	Connection::ProcessCgi()
 		pipeout = cgi.GetPipeOut();
 		std::cout << "cgi setup done\n";
 		utils::AddReadEvent(kq, pipein);
+		std::cout << "AddReadEvent4 fd: " << pipein << '\n';
 		utils::AddWriteEvent(kq, pipeout);
+		std::cout << "AddWriteEvent1 fd: " << pipeout << '\n';
 		response.BodyResize(request.GetBody().size() + 700);
 		progress = CGI;
 	}
@@ -517,11 +531,13 @@ void	Connection::ProcessCgi()
 void	Connection::ReadCgi()
 {
 	std::string buff;
-	ssize_t	maxsize = 655360;
+	ssize_t	maxsize = 65536;
 	buff.resize(maxsize);
 	ssize_t readsize = read(pipein, &buff[0], maxsize);
 	if (readsize < 0)
 	{
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
+			return ;
 		std::cout << "readcgi error\n";
 		std::cout << errno << "\n";
 		response.make_response_50x(500);
@@ -534,6 +550,7 @@ void	Connection::ReadCgi()
 		response.AddBody(buff, readsize);
 		response.SplitBodyHeaderData();
 		utils::RemoveReadEvent(kq, pipein);
+		std::cout << "RemoveReadEvent3 fd: " << pipein << '\n';
 		progress = COMBINE;
 		return ;
 	}
@@ -570,6 +587,7 @@ void	Connection::SendCgi()
 		std::cout << "send cgi done: write success this time by "<<writesize<<"\n";
 		request.CutBody(writesize);
 		utils::RemoveWriteEvent(kq, pipeout);
+		std::cout << "RemoveWriteEvent3 fd: " << pipeout << '\n';
 		close(pipeout);
 		return ;
 	}
@@ -648,4 +666,40 @@ Response&	Connection::GetResponse()
 int		Connection::GetKq()
 {
 	return kq;
+}
+
+void	Connection::UpdateTimeval()
+{
+	std::time(&timeval);
+}
+
+void	Connection::SetPipein(int fd){
+	pipein = fd;
+}
+
+void	Connection::SetPipeout(int fd){
+	pipeout = fd;
+}
+
+void	Connection::SetFileFd(int fd){
+	file_fd = fd;
+}
+
+Cgi&	Connection::GetCgi()
+{
+	return (cgi);
+}
+
+Parser&	Connection::GetParser()
+{
+	return (parser);
+}
+
+void	Connection::Cleaner()
+{
+	progress = FROM_CLIENT;
+	file_fd = 0;
+	pipein = 0;
+	pipeout = 0;
+	total_len = 0;
 }

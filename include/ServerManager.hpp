@@ -28,11 +28,13 @@ public:
 	bool					InitKqueue(int &kq, int &sock_serv, struct ::kevent &change_event);
 	bool					CheckEvent(int &kq, struct ::kevent *events, int &event_count, int &sock_serv);
 	void					CloseAllConnection();
-	void					CloseConnection(int sock_client);
+	void					CloseVConnection(int sock_client);
+	void					CloseConnectionMap(int sock_client);
 	void					AddConnectionMap(int, Connection*);
 	void					RemoveConnectionMap(int fd);
 	void					CheckConnectionTimeout();
 	void					AfterProcess(Connection* connection);
+	void					Scaffold(Connection* connection);
 
 
 

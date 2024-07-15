@@ -34,7 +34,9 @@ public:
 	void						ReadCgi();
 	void						SendCgi();
 	void						SendMessage();
-
+	void						SetPipein(int fd);
+	void						SetPipeout(int fd);
+	void						SetFileFd(int fd);
 
 	int							GetClientSocketFd();
 	int							GetPipein();
@@ -42,10 +44,14 @@ public:
 	enum CurrentProgress		GetProgress();
 	int							GetFileFd();
 	std::time_t					GetTimeval();
+	Parser&						GetParser();
 	Request&					GetRequest();
 	Response&					GetResponse();
+	Cgi&						GetCgi();
 	int							GetKq();
 	void						SetProgress(enum CurrentProgress progress);
+	void						UpdateTimeval();
+	void						Cleaner();
 
 private:
 	int						kq;

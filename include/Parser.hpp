@@ -18,6 +18,7 @@ public:
 	void			ParseHeader(Request &request);
 	void			ParseBody(Request &request);
 	void			ParseTrailer(Request &request);
+	void			Cleaner();
 
 private:
 	std::string	data;

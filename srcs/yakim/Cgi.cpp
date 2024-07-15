@@ -164,3 +164,18 @@ void	Cgi::makeEnvp()
 	}
 	envp.push_back(NULL);
 }
+
+void    Cgi::Cleaner()
+{
+	size_t	size = envp.size();
+    for (size_t i = 0; i < size; i++)
+	{
+		free(envp.back());
+		envp.pop_back();
+	}
+    envmap.clear();
+    pipe_in[0] = 0;
+    pipe_in[1] = 0;
+    pipe_in[0] = 0;
+    pipe_in[1] = 0;
+}

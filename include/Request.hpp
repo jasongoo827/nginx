@@ -30,6 +30,7 @@ public:
 	int									GetBytesToRead();
 	void								CutBody(ssize_t size);
 	const std::string					FindValueInHeader(const std::string &key);
+	void								Cleaner();
 
 private:
 	enum Method							method;

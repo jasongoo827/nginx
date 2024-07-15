@@ -20,6 +20,7 @@ public:
 	Status	setPipe();
 	Status	CgiExec(std::string& path);
 	void	makeEnvp();
+	void	Cleaner();
 
 
 private:
