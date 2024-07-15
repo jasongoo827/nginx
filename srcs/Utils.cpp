@@ -254,7 +254,7 @@ namespace utils
 				if (cur_num == -1)
 					cur_num = 0;
 				cur_num *= 16;
-				if (cur_num > 10000000)
+				if (cur_num > 4294967295)
 					return (-1);
 				if (std::isdigit(*tmp_str))
 					cur_num += *tmp_str - 48;

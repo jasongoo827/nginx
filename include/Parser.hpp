@@ -13,6 +13,7 @@ public:
 	~Parser();
 
 	// method
+	void			SetMaxBodySize(size_t size);
 	std::string&	GetData();
 	void			ParseStartline(Request &request);
 	void			ParseHeader(Request &request);
@@ -21,6 +22,7 @@ public:
 	void			Cleaner();
 
 private:
+	size_t		max_body_size;
 	std::string	data;
 	// forbidden method
 	Parser(const Parser& copy);
