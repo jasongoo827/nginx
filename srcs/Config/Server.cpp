@@ -40,8 +40,8 @@ Status Server::ParseServerBlock(std::string& server_block)
 		// std::cout << str << '\n';
 		if (str.find('#') != std::string::npos || str.empty() || utils::IsStrSpace(str))
 			continue;
-		if (str.find("location /") == std::string::npos && str[str.length() - 1] != ';')
-			return Status::Error("Parsing error");
+		if (str.find("location /") == std::string::npos && !utils::CheckTerminator(str))
+			return Status::Error("Terminator error");
 		else if (str[str.length() - 1] == ';')
 			str.resize(str.length() - 1);
 		if (utils::find(str, "listen"))
@@ -73,6 +73,8 @@ Status	Server::ParsePortVariable(std::string& str)
 		return Status::Error("wrong listen format");
 	if (!utils::IsStrDigit(tmp_vec.back()))
 	{
+		if (tmp_vec.back().find(':') != tmp_vec.back().rfind(':'))
+			return Status::Error("Parsing error");
 		std::vector<std::string> ip_format = utils::SplitToVector(tmp_vec.back(), ':');
 		if (!utils::CheckIpFormat(ip_format.front()))
 			return Status::Error("wrong ip format");

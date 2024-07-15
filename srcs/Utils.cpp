@@ -72,6 +72,8 @@ namespace utils
 			return Status::Error("Parsing error");
 		for (size_t i = 1; i < token_vec.size(); ++i)
 		{
+			if (token_vec[i].find(':') != token_vec[i].rfind(':'))
+				return Status::Error("Parsing error");
 			std::vector<std::string> cgi_vec = SplitToVector(token_vec[i], ':');
 			if (cgi_vec.size() != 2)
 				return Status::Error("Parsing error");
@@ -133,6 +135,15 @@ namespace utils
 			line++;
 		}
 		if (line != 4)
+			return false;
+		return true;
+	}
+
+	bool CheckTerminator(std::string& s)
+	{
+		if (s[s.length() - 1] != ';')
+			return false;
+		if (s.find(';') != s.rfind(';'))
 			return false;
 		return true;
 	}

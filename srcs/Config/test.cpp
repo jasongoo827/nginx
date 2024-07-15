@@ -18,7 +18,7 @@ int main(int argc, char *argv[], char *envp[])
 	}
 	else
 	{
-		std::string file("usr/config/nginx.conf");
+		std::string file("usr/config/multiport.conf");
 		Status status = config.ReadConfig(file);
 		if (!status.ok())
 		{

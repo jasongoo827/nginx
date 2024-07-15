@@ -42,8 +42,8 @@ Status Locate::ParseLocateBlock(std::string& locate_block)
 		// std::cout << str << '\n';
 		if (str.find('#') != std::string::npos || str.empty() || utils::IsStrSpace(str))
 			continue;
-		if (str[str.length() - 1] != ';')
-			return Status::Error("Parsing error");
+		if (!utils::CheckTerminator(str))
+			return Status::Error("Terminator error");
 		else
 			str.resize(str.length() - 1);
 		if (utils::find(str, "limit_except"))

@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+
+import cgi
+import cgitb
+cgitb.enable()
+
+print("Content-Type: text/html\n")
+print("""
 <!DOCTYPE html>
 <html>
 <head>
@@ -76,7 +84,7 @@ section button:hover {
 	<main>
 		<section>
 			<h2>GET</h2>
-			<a href="/cgi/get_script.py"><button>GET BUTTON</button></a>
+			<a href="/cgi-bin/get_script.py"><button>GET BUTTON</button></a>
 		</section>
 		<section>
 			<h2>UPLOAD FILE</h2>
@@ -111,3 +119,4 @@ section button:hover {
 	</script>
 </body>
 </html>
+""")

@@ -35,6 +35,7 @@ namespace utils
 	bool						CheckFilePath(std::string& file_path);
 	bool						CheckExtension(std::string& file, const char *ex);
 	bool						CheckIpFormat(std::string& s);
+	bool						CheckTerminator(std::string& s);
 	bool						find(std::string& dst, const char *src);
 	bool 						IsStrDigit(std::string& s);
 	bool						IsStrSpace(std::string& s);

@@ -4,7 +4,7 @@ NAME = webserv
 
 CC = c++
 
-CFLAGS = -Wall -Werror -Wextra -Iinclude -MMD -MP -std=c++98 #-fsanitize=address #-g3
+CFLAGS = -Wall -Werror -Wextra -Iinclude -std=c++98 #-fsanitize=address #-g3
 
 RM = rm -rf
 
@@ -28,7 +28,7 @@ $(NAME): $(OBJS)
 	$(CC) $(CFLAGS) -o $(NAME) $(OBJS)
 
 %.o: %.cpp
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) -c $< -o $@ 
 
 $(DEPS_DIR)/%.d: %.cpp
 	@mkdir -p $(dir $@)
