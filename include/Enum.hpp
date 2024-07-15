@@ -22,9 +22,7 @@ enum ServerVar
 {
 	LISTEN = 1 << 0,
 	SERVER_NAME = 1 << 1,
-	CLIENT_SIZE = 1 << 2,
-	CGI_EXT = 1 << 3,
-	FILEPATH = 1 << 5
+	FILEPATH = 1 << 2
 };
 
 enum LocateVar
@@ -33,7 +31,9 @@ enum LocateVar
 	REDIRECT = 1 << 1,
 	ROOT = 1 << 2,
 	INDEX = 1 << 3,
-	AUTOINDEX = 1 << 4
+	AUTOINDEX = 1 << 4,
+	CGI_EXT = 1 << 5,
+	CLIENT_SIZE = 1 << 6
 };
 
 enum CurrentProgress

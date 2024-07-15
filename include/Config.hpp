@@ -7,6 +7,7 @@
 #include <sstream>
 #include "Utils.hpp"
 #include <stdlib.h>
+#include <set>
 #include "Enum.hpp"
 
 class Server;

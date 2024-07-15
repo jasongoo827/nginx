@@ -65,6 +65,23 @@ namespace utils
 		return Status::OK();
 	}
 
+	Status ParseVariable(std::map<std::string, std::string>& dst, std::string& src)
+	{
+		std::vector<std::string> token_vec = SplitToVector(src);
+		if (token_vec.size() < 2)
+			return Status::Error("Parsing error");
+		for (size_t i = 1; i < token_vec.size(); ++i)
+		{
+			if (token_vec[i].find(':') != token_vec[i].rfind(':'))
+				return Status::Error("Parsing error");
+			std::vector<std::string> cgi_vec = SplitToVector(token_vec[i], ':');
+			if (cgi_vec.size() != 2)
+				return Status::Error("Parsing error");
+			dst.insert(std::make_pair(cgi_vec.front(), cgi_vec.back()));
+		}
+		return Status::OK();
+	}
+
 	Status 	ParseVariable(std::vector<std::string>& dst, std::string& src, std::string& cmp)
 	{
 		std::vector<std::string> token_vec = SplitToVector(src);
@@ -118,6 +135,15 @@ namespace utils
 			line++;
 		}
 		if (line != 4)
+			return false;
+		return true;
+	}
+
+	bool CheckTerminator(std::string& s)
+	{
+		if (s[s.length() - 1] != ';')
+			return false;
+		if (s.find(';') != s.rfind(';'))
 			return false;
 		return true;
 	}
@@ -254,7 +280,7 @@ namespace utils
 				if (cur_num == -1)
 					cur_num = 0;
 				cur_num *= 16;
-				if (cur_num > 10000000)
+				if (cur_num > 4294967295)
 					return (-1);
 				if (std::isdigit(*tmp_str))
 					cur_num += *tmp_str - 48;

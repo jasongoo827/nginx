@@ -24,8 +24,8 @@ public:
 	Status								ParsePortVariable(std::string& str);
 	Status								ParseServerName(std::string& str);
 	Status								ParseErrorPage(std::string& str);
-	Status								ParseCgiType(std::string& str);
-	Status								ParseClientSize(std::string& str);
+	// Status								ParseCgiType(std::string& str);
+	// Status								ParseClientSize(std::string& str);
 	Status								ParseFilePath(std::string& str);
 	Status								ParseLocateVariable(std::string& str, std::istringstream& iss);
 	std::string							ExtractLocateBlock(std::istringstream& iss, std::string& first_line);
@@ -35,10 +35,10 @@ public:
 	const std::map<int, std::string>& 	GetErrorPage(void) const;
 	const std::string& 					GetHostIp(void) const;
 	const std::string& 					GetServerName(void) const;
-	const std::string& 					GetCgiType(void) const;
-	const std::vector<std::string>&		GetCgiVec(void) const;
+	// const std::string& 					GetCgiType(void) const;
+	// const std::vector<std::string>&		GetCgiVec(void) const;
 	const ssize_t& 						GetPort(void) const;
-	const ssize_t& 						GetClientBodySize(void) const;
+	// const ssize_t& 						GetClientBodySize(void) const;
 	const std::string& 					GetFilePath(void) const;
 
 private:
@@ -46,10 +46,10 @@ private:
 	std::map<int, std::string> 	error_page;
 	std::string					host_ip;
 	std::string					server_name;
-	std::string 				cgi_type; // 추후에 vector로 수정될 수 있음.
-	std::vector<std::string>	cgi_vec;
+	// std::string 				cgi_type;
+	// std::vector<std::string>	cgi_vec;
 	ssize_t						port;
-	ssize_t						client_body_size;
+	// ssize_t						client_body_size;
 	std::string					file_path;
 	int							dup_mask;
 };

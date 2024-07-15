@@ -65,12 +65,11 @@ Status Config::ParseConfig(std::string& file)
 	Status status;
 	while (getline(iss, str, '\n'))
 	{
-		// std::cout << str << '\n';
 		// 중복 체크, 유효성 체크
 		if (str.find('#') != std::string::npos || str.empty() || utils::IsStrSpace(str))
 			continue;
-		if (str.find("server") == std::string::npos && str[str.length() - 1] != ';')
-			return Status::Error("Parsing error");
+		if (str.find("server") == std::string::npos && !utils::CheckTerminator(str))
+			return Status::Error("Terminator error");
 		if (utils::find(str, "SOFTWARE_NAME"))
 			status = ParseSoftwareName(str);
 		else if (utils::find(str, "SOFTWARE_VERSION"))
@@ -93,31 +92,6 @@ Status Config::ParseConfig(std::string& file)
 	return Status::OK();
 }
 
-// std::string Config::ExtractServerBlock(std::string& file)
-// {
-// 	// std::cout << "Config::ExtractServerBlock\n";
-// 	std::string start_token = "server {";
-// 	size_t start_pos = file.find(start_token);
-// 	if (start_pos == std::string::npos)
-// 		return "";
-// 	size_t end_pos = start_pos + start_token.length();
-// 	// 엄밀한 확인 필요
-// 	size_t eof = (start_pos == file.rfind(start_token)) ? file.length() : \
-// 	file.find(start_token, start_pos + 1);
-// 	int brace_count = 1;
-// 	while (end_pos < eof && brace_count > 0)
-// 	{
-// 		if (file[end_pos] == '{')
-// 			brace_count++;
-// 		else if (file[end_pos] == '}')
-// 			brace_count--;
-// 		end_pos++;
-// 	}
-// 	if (brace_count != 0 || end_pos != file.length())
-// 		return "";
-// 	return file.substr(start_pos, end_pos - start_pos);
-// }
-
 std::string Config::ExtractServerBlock(std::istringstream& iss, std::string& first_line)
 {
 	if (first_line != "server {")
@@ -134,11 +108,12 @@ std::string Config::ExtractServerBlock(std::istringstream& iss, std::string& fir
 
 bool	Config::CheckPortDup(void)
 {
-	for (size_t i = 0; i < this->server_vec.size() - 1; ++i)
-	{
-		if (this->server_vec[i].GetPort() == this->server_vec[i + 1].GetPort())
-			return true;
-	}
+	std::set<ssize_t> s;
+
+	for (size_t i = 0; i < this->server_vec.size(); ++i)
+		s.insert(this->server_vec[i].GetPort());
+	if (s.size() != server_vec.size())
+		return true;
 	return false;
 }
 
@@ -211,7 +186,6 @@ const std::string&	Config::GetCgiVer(void) const
 {
 	return cgi_ver;
 }
-
 
 void Config::PrintConfigInfo(void)
 {

@@ -2,11 +2,11 @@
 #include "Status.hpp"
 #include "Utils.hpp"
 
-Locate::Locate(): autoindex(false), dup_mask(0) {}
+Locate::Locate(): autoindex(false), client_body_size(0), dup_mask(0) {}
 
 Locate::Locate(const Locate& other): locate_path(other.locate_path), method_vec(other.method_vec),
-index_vec(other.index_vec), redirect_pair(other.redirect_pair), root(other.root),
-autoindex(other.autoindex), dup_mask(other.dup_mask) {}
+index_vec(other.index_vec), redirect_pair(other.redirect_pair), cgi_map(other.cgi_map), root(other.root),
+client_body_size(other.client_body_size), autoindex(other.autoindex), dup_mask(other.dup_mask) {}
 
 Locate& Locate::operator=(const Locate& rhs)
 {
@@ -16,7 +16,9 @@ Locate& Locate::operator=(const Locate& rhs)
 	method_vec = rhs.method_vec;
 	index_vec = rhs.index_vec;
 	redirect_pair = rhs.redirect_pair;
+	cgi_map = rhs.cgi_map;
 	root = rhs.root;
+	client_body_size = rhs.client_body_size;
 	autoindex = rhs.autoindex;
 	dup_mask = rhs.dup_mask;
 	return (*this);
@@ -24,6 +26,7 @@ Locate& Locate::operator=(const Locate& rhs)
 
 Locate::~Locate()
 {
+	cgi_map.clear();
 	method_vec.clear();
 	index_vec.clear();
 }
@@ -39,8 +42,8 @@ Status Locate::ParseLocateBlock(std::string& locate_block)
 		// std::cout << str << '\n';
 		if (str.find('#') != std::string::npos || str.empty() || utils::IsStrSpace(str))
 			continue;
-		if (str[str.length() - 1] != ';')
-			return Status::Error("Parsing error");
+		if (!utils::CheckTerminator(str))
+			return Status::Error("Terminator error");
 		else
 			str.resize(str.length() - 1);
 		if (utils::find(str, "limit_except"))
@@ -53,8 +56,12 @@ Status Locate::ParseLocateBlock(std::string& locate_block)
 			status = ParseIndex(str);
 		else if (utils::find(str, "autoindex"))
 			status = ParseAutoIndex(str);
-		// else if (utils::find(str, "filepath"))
-		// 	status = ParseFilePath(str);
+		else if (utils::find(str, "cgi"))
+			status = ParseCgi(str);
+		else if (utils::find(str, "client_body_size"))
+			status = ParseClientSize(str);
+		else
+			return Status::Error("wrong config option error");
 		if (!status.ok())
 			return Status::Error("Parsing error");
 	}
@@ -132,6 +139,25 @@ Status	Locate::ParseAutoIndex(std::string& str)
 	return status;
 }
 
+Status	Locate::ParseClientSize(std::string& str)
+{
+	if (dup_mask & CLIENT_SIZE)
+		return Status::Error("client size duplicate error");
+	dup_mask |= CLIENT_SIZE;
+	Status status = utils::ParseVariable(this->client_body_size, str);
+	if (status.ok() && (this->client_body_size < 0 || this->client_body_size > 1000000 || this->client_body_size > std::numeric_limits<int>::max() || this->client_body_size < std::numeric_limits<int>::min()))
+		return Status::Error("Parsing error");
+	return status;
+}
+
+Status Locate::ParseCgi(std::string& str)
+{
+	if (dup_mask & CGI_EXT)
+		return Status::Error("cgi duplicate error");
+	dup_mask |= CGI_EXT;
+	return utils::ParseVariable(this->cgi_map, str);
+}
+
 // Status	Locate::ParseFilePath(std::string& str)
 // {
 // 	if (dup_mask & FILEPATH)
@@ -167,14 +193,19 @@ const std::string& Locate::GetRoot(void) const
 	return root;
 }
 
-// const std::string& Locate::GetFilePath(void) const
-// {
-// 	return file_path;
-// }
+const std::map<std::string, std::string> Locate::GetCgiMap(void) const
+{
+	return cgi_map;
+}
 
 bool Locate::GetAutoIndex(void) const
 {
 	return autoindex;
+}
+
+const ssize_t& Locate::GetClientBodySize(void) const
+{
+	return client_body_size;
 }
 
 void Locate::SetLocatePath(std::string& str)
@@ -202,6 +233,9 @@ void Locate::PrintLocateInfo(void)
 	std::cout << "autoindex ";
 	if (this->autoindex) std::cout << "ON\n";
 	else std::cout << "OFF\n";
-	// std::cout << "filepath: " << this->file_path;
-	std::cout << '\n';
+	std::cout << "client body size: " << this->client_body_size << "\n";
+	std::cout << "cgi : ";
+	for (std::map<std::string, std::string>::iterator it = cgi_map.begin(); it != cgi_map.end(); ++it)
+		std::cout << it->first << ":" << it->second << ' ';
+	std::cout << "\n\n";
 }

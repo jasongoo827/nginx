@@ -9,6 +9,11 @@ std::string&	Parser::GetData(){
 	return data;
 };
 
+void	Parser::SetMaxBodySize(size_t size)
+{
+	max_body_size = size;
+}
+
 void	Parser::ParseStartline(Request &request)
 {
 	std::string			method = "";
@@ -37,8 +42,7 @@ void	Parser::ParseHeader(Request &request)
 
 	if (request.GetStatus() != READ_HEADER)
 		return ;
-	if (data.find("\r\n\r\n") != std::string::npos)
-		request.SetStatus(READ_BODY);
+	request.SetStatus(READ_BODY);
 	while (!data.empty())
 	{
 		tmp_str = utils::DivideStrByCRLF(data);
@@ -77,10 +81,9 @@ void	Parser::ParseBody(Request &request)
 			int	cur_size = request.GetBytesToRead();
 			if (cur_size == 0)
 				cur_size = utils::ReadChunkSize(data);
-			// std::cout << '\n' << cur_size << '\n';
 			while (cur_size > 0)
 			{
-				if (data_size > 150000000 || cur_size > 10000000)
+				if (data_size > max_body_size || cur_size > max_body_size)
 				{
 					request.SetStatus(BAD_REQUEST);
 					return ;
@@ -88,7 +91,6 @@ void	Parser::ParseBody(Request &request)
 				tmp_str = utils::ReadData(data, cur_size);
 				data_size += cur_size;
 				body += tmp_str;
-				// std::cout << "cur_size: " << cur_size << ", tmp_str size: " << tmp_str.size() << '\n';
 				request.SetBytesToRead(cur_size - tmp_str.size());
 				if (request.GetBytesToRead() != 0)
 					break ;
@@ -102,7 +104,7 @@ void	Parser::ParseBody(Request &request)
 			if (request.GetBytesToRead() == 0)
 				request.SetBytesToRead(std::atoi(request.FindValueInHeader("content-length").c_str()));
 			data_size = request.GetBytesToRead();
-			if (request.FindValueInHeader("content-length").empty() || data_size < 0 || 150000000 < data_size)
+			if (request.FindValueInHeader("content-length").empty() || data_size < 0 || max_body_size < data_size)
 			{
 				request.SetStatus(BAD_REQUEST);
 				return ;
@@ -143,12 +145,7 @@ void	Parser::ParseTrailer(Request &request)
 		return ;
 	}
 	utils::SplitHeaderData(tmp_str, trailer_name, trailer_value);
-	if (trailer_list.find(trailer_name) == std::string::npos || utils::CheckNameChar(trailer_name))
-	{
-		request.SetStatus(BAD_REQUEST);
-		return ;
-	}
-	if (trailer_name == "host" && request_header.find("host") != request_header.end())
+	if (trailer_list.find(trailer_name) == std::string::npos || utils::CheckNameChar(trailer_name) || trailer_name == "host")
 	{
 		request.SetStatus(BAD_REQUEST);
 		return ;
@@ -166,12 +163,7 @@ void	Parser::ParseTrailer(Request &request)
 		}
 		else
 			utils::SplitHeaderData(tmp_str, trailer_name, trailer_value);
-		if (trailer_list.find(trailer_name) == std::string::npos || utils::CheckNameChar(trailer_name))
-		{
-			request.SetStatus(BAD_REQUEST);
-			return ;
-		}
-		if (trailer_name == "host" && request_header.find("host") != request_header.end())
+		if (trailer_list.find(trailer_name) == std::string::npos || utils::CheckNameChar(trailer_name) || trailer_name == "host")
 		{
 			request.SetStatus(BAD_REQUEST);
 			return ;
