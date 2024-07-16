@@ -168,7 +168,7 @@ void	Connection::ReadClient()
 		if (parse_data.find("\r\n\r\n") != std::string::npos)
 		{
 			parser.ParseHeader(request);
-			// std::cout << "CRLFCRLF FOUND\n";
+			std::cout << "CRLFCRLF FOUND\n";
 		}
 		parser.ParseBody(request);
 		parser.ParseTrailer(request);

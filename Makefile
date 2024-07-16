@@ -37,7 +37,7 @@ $(DEPS_DIR)/%.d: %.cpp
 
 clean:
 	$(RM) $(OBJS)
-	$(RM) $(DEPS_DIR)
+	$(RM) $(DEPS_DIR)/%.d
 
 fclean: clean
 	$(RM) $(NAME)

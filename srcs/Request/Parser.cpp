@@ -104,7 +104,7 @@ void	Parser::ParseBody(Request &request)
 			if (request.GetBytesToRead() == 0)
 				request.SetBytesToRead(std::atoi(request.FindValueInHeader("content-length").c_str()));
 			data_size = request.GetBytesToRead();
-			if (request.FindValueInHeader("content-length").empty() || data_size < 0 || max_body_size < data_size)
+			if (request.FindValueInHeader("content-length").empty() || data_size < 0 || 15000000 < data_size) // max_body_size 추후 수정
 			{
 				request.SetStatus(BAD_REQUEST);
 				return ;
