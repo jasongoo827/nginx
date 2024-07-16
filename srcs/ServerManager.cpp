@@ -130,6 +130,7 @@ bool		ServerManager::RunServer(Config* config)
 			std::cout << "fd usage: " << connectionmap.size() << '\n';
 			std::cout << "client units: " << v_connection.size() << '\n';
 			CheckConnectionTimeout();
+			std::cout << "--------------------cycle ended----------------------------\n";
 		}
 		CloseAllConnection();
 	}
@@ -387,18 +388,12 @@ void	ServerManager::AfterProcess(Connection* connection)
 	}
 	else if (connection->GetProgress() == FROM_FILE)
 	{
-		utils::AddReadEvent(kq, connection->GetFileFd());
+		utils::AddReadEventForFile(kq, connection->GetFileFd());
 		std::cout << "AddReadEvent3 fd: " << connection->GetFileFd() << '\n';
 		AddConnectionMap(connection->GetFileFd(), connection);
 	}
 	else if (connection->GetProgress() == TO_CLIENT)
 	{
-		if (connection->GetPipeout())
-		{
-			utils::RemoveWriteEvent(kq, connection->GetPipeout());
-			std::cout << "RemoveWriteEvent2 fd: " << connection->GetPipeout() << '\n';
-			connection->SetPipeout(0);
-		}
 		utils::AddWriteEvent(kq, connection->GetClientSocketFd());
 		std::cout << "AddWriteEvent3 fd: " << connection->GetClientSocketFd() << '\n';
 	}
@@ -409,6 +404,13 @@ void	ServerManager::AfterProcess(Connection* connection)
 	}
 	else if (connection->GetProgress() == COMBINE)
 	{
+		if (connection->GetPipeout())
+		{
+			utils::RemoveWriteEvent(kq, connection->GetPipeout());
+			CloseConnectionMap(connection->GetPipeout());
+			std::cout << "RemoveWriteEvent2 fd: " << connection->GetPipeout() << '\n';
+			connection->SetPipeout(0);
+		}
 		if (connection->GetFileFd())
 		{
 			CloseConnectionMap(connection->GetFileFd());

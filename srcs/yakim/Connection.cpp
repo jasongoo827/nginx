@@ -88,10 +88,10 @@ void	Connection::MainProcess(struct kevent& event)
 		if (!session->CheckValidSession(this->GetRequest().FindValueInHeader("cookie")))
 			session->CreateSession();
 		MakeResponse();
-		if (request.FindValueInHeader("connection") == "keep-alive")
-			response.AddHeader("Connection", "keep-alive");
-		else
-			response.AddHeader("Connection", "close");
+		// if (request.FindValueInHeader("connection") == "keep-alive")
+		response.AddHeader("Connection", "keep-alive");
+		// else
+			// response.AddHeader("Connection", "close");
 		response.AddHeader("Set-Cookie", session->GetSendCookie());
 		response.CombineMessage();
 		return ;
@@ -147,24 +147,24 @@ void	Connection::ReadClient()
 
 		std::string &parse_data = parser.GetData();
 		parse_data = parse_data + std::string(buffer, nread);
-		// std::cout << "\n\n원본 메시지 토탈\n" << parse_data;
+		std::cout << "\n\n원본 메시지 토탈\n" << parse_data;
 		// for (ssize_t i = 0; i < nread; i++)
 		// {
 		// 	std::cout << "\n이번 메시지 끝문자 : " << (int)buffer[i];
 		// }
-		// std::cout << "\n데이터 길이 : " << nread << '\n';
-		// std::cout << "이번 읽기 대상\n";
-		// if (request.GetStatus() == READ_STARTLINE)
-		// 	std::cout << "READ_STARTLINE\n";
-		// if (request.GetStatus() == READ_HEADER)
-		// 	std::cout << "READ_HEADER\n";
-		// if (request.GetStatus() == READ_BODY)
-		// 	std::cout << "READ_BODY\n";
-		// if (request.GetStatus() == READ_TRAILER)
-		// 	std::cout << "READ_TRAILER\n";
+		std::cout << "\n데이터 길이 : " << nread << '\n';
+		std::cout << "이번 읽기 대상\n";
+		if (request.GetStatus() == READ_STARTLINE)
+			std::cout << "READ_STARTLINE\n";
+		if (request.GetStatus() == READ_HEADER)
+			std::cout << "READ_HEADER\n";
+		if (request.GetStatus() == READ_BODY)
+			std::cout << "READ_BODY\n";
+		if (request.GetStatus() == READ_TRAILER)
+			std::cout << "READ_TRAILER\n";
 		if (parse_data.find("\r\n") != std::string::npos)
 			parser.ParseStartline(request);
-		// std::cout << request.GetMethod() << '\n';
+		std::cout << request.GetMethod() << '\n';
 		if (parse_data.find("\r\n\r\n") != std::string::npos)
 		{
 			parser.ParseHeader(request);
@@ -178,8 +178,8 @@ void	Connection::ReadClient()
 		else
 		{
 			std::cout << "\n총 파싱 데이터 len : " << request.GetBody().size() << '\n';
-			// std::cout << "파싱 메시지\n";
-			// std::cout << request.GetMethod() << " " << request.GetUrl() << " " << request.GetVersion() << '\n';
+			std::cout << "파싱 메시지\n";
+			std::cout << request.GetMethod() << " " << request.GetUrl() << " " << request.GetVersion() << '\n';
 			// std::map<std::string, std::string> tmp_map = request.GetHeader();
 			// for (std::map<std::string, std::string>::iterator it = tmp_map.begin(); it != tmp_map.end(); ++it)
 			// 	std::cout << it->first << ": \'" << it->second << "\'\n";
@@ -201,7 +201,7 @@ void	Connection::MakeResponse()
 	//request 유효성 검사
 	if (request.GetStatus() == BAD_REQUEST)
 	{
-		response.make_response_40x(405);
+		response.make_response_40x(400);
 		progress = COMBINE;
 		return ;
 	}
@@ -313,7 +313,7 @@ void	Connection::MakeResponse()
 	path += request.GetUrl().substr(locate_ptr->GetLocatePath().size());
 	std::cout << "path: " << path << "\n";
 
-	if (request.GetMethod() == GET || (request.GetMethod() == POST && request.GetBody().size() == 0))
+	if (request.GetMethod() == GET)
 		ProcessGet();
 	else if (request.GetMethod() == POST)
 		ProcessPost();
@@ -338,11 +338,23 @@ void	Connection::ProcessGet()
 void	Connection::ProcessPost()
 {
 	std::cout << "Processpost\n";
+	std::cout << "allowed body size" << locate_ptr->GetClientBodySize() << "\n";
+	std::cout << "real body size" << request.GetBody().size() << "\n";
+	if (request.GetBody().size() > static_cast<size_t>(locate_ptr->GetClientBodySize()))
+	{
+		response.make_response_40x(413);
+		progress = COMBINE;
+		return ;
+	}
 	std::vector<std::string> cgi = utils::SplitToVector(path, '.');
 	std::string extension = "." + cgi.back();
-	std::cout << cgi.back() << server_ptr->GetCgiVec().front() << "\n";
-	if (std::find(server_ptr->GetCgiVec().begin(), server_ptr->GetCgiVec().end(), extension) != server_ptr->GetCgiVec().end())
+	std::cout << "extension: " << extension << "\n";
+	if (locate_ptr->GetCgiMap().find(extension) != locate_ptr->GetCgiMap().end())
 	{
+		std::cout << locate_ptr->GetCgiMap().find(extension)->first << "\n";
+		std::cout << locate_ptr->GetCgiMap().find(extension)->second << "\n";
+		path = "";
+		path = (locate_ptr->GetCgiMap()).find(extension)->second;
 		ProcessCgi();
 		return ;
 	}
@@ -457,6 +469,7 @@ void	Connection::ProcessFile()
 		return ;
 	}
 	file_fd = open(path.c_str(), std::ios::binary);
+	std::cout << errno << "\n";
 	if (file_fd == -1)
 	{
 		std::cout << "ProcessFile: open file failed\n";
@@ -473,11 +486,11 @@ void	Connection::ProcessFile()
 
 void	Connection::SendMessage()
 {
+	static int i = 0;
 	const std::string &buffer = response.GetMessage();
 	std::cout << "---------message-------------\n";
-	std::cout << response.GetStatus();
 	// std::cout << response.GetMessage();
-	std::cout << "messagesize: " << buffer.size() << "\n";
+	std::cout << i++ << " " <<response.GetStatus() << "messagesize: " << buffer.size() << " to " << client_socket_fd <<"\n";
 	std::cout << "---------message end-------------\n";
 	ssize_t send_size = write(client_socket_fd, buffer.data(), buffer.size());
 	std::cout << "send_size = " << send_size << "\n";
@@ -609,17 +622,16 @@ void	Connection::SendCgi()
 
 void	Connection::ReadFile()
 {
-	std::string buff;
-	ssize_t maxsize = server_ptr->GetClientBodySize();
-	buff.resize(maxsize);
-	ssize_t readsize = read(file_fd, &buff[0], maxsize);
+	static char buff[150000000];
+	ssize_t readsize = read(file_fd, &buff[0], 150000000);
+	std::cout << "readfile: " << readsize << "\n";
 	if (readsize < 0)
 	{
 		response.make_response_50x(500);
 		progress = COMBINE;
 		return ;
 	}
-	else if (readsize == maxsize)
+	else if (readsize == 150000000)
 	{
 		response.AddBody(buff, readsize);
 		return ;
@@ -628,6 +640,7 @@ void	Connection::ReadFile()
 	{
 		response.AddBody(buff, readsize);
 		progress = COMBINE;
+		utils::RemoveReadEvent(kq, file_fd);
 		std::cout << readsize << ": ReadFile done\n";
 		return ;
 	}
@@ -645,8 +658,8 @@ void	Connection::CheckExitCgi()
 			if (kill(cgi.GetPid(), SIGINT) == -1)
 			{
 				std::cout << "-------------kill failed------------------";
-				response.make_response_50x(500);
-				progress = COMBINE;
+				// response.make_response_50x(500);
+				// progress = COMBINE;
 			}
 		}
 		// std::cout << "-------------killed child------------------";

@@ -33,7 +33,7 @@ public:
 	const std::vector<std::string>&				GetIndexVec(void) const;
 	const std::pair<int, std::string>& 			GetRedirectPair(void) const;
 	const std::string& 							GetRoot(void) const;
-	const std::map<std::string, std::string> 	GetCgiMap(void) const;
+	const std::map<std::string, std::string>& 	GetCgiMap(void) const;
 	bool 										GetAutoIndex(void) const;
 	const ssize_t& 								GetClientBodySize(void) const;
 	void										SetLocatePath(std::string& str);

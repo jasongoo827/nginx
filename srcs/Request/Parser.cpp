@@ -83,7 +83,7 @@ void	Parser::ParseBody(Request &request)
 				cur_size = utils::ReadChunkSize(data);
 			while (cur_size > 0)
 			{
-				if (data_size > max_body_size || cur_size > max_body_size)
+				if (data_size > 15000000 || cur_size > 1000000)
 				{
 					request.SetStatus(BAD_REQUEST);
 					return ;

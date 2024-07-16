@@ -21,7 +21,7 @@ int main(int argc, char *argv[], char *envp[])
 			std::cerr << status.message() << '\n';
 			return (1);
 		}
-		// config.PrintConfigInfo();
+		config.PrintConfigInfo();
 	}
 	else
 	{
@@ -34,7 +34,7 @@ int main(int argc, char *argv[], char *envp[])
 		}
 		config.PrintConfigInfo();
 	}
-	// std::cout << "config done" << std::endl;
-	// ServerManager	servermanager;
-	// servermanager.RunServer(&config);
+	std::cout << "config done" << std::endl;
+	ServerManager	servermanager;
+	servermanager.RunServer(&config);
 }

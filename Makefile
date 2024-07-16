@@ -4,7 +4,7 @@ NAME = webserv
 
 CC = c++
 
-CFLAGS = -Wall -Werror -Wextra -Iinclude -std=c++98 #-fsanitize=address #-g3
+CFLAGS = -Wall -Werror -Wextra -Iinclude -std=c++98 #-fsanitize=address -g3
 
 RM = rm -rf
 

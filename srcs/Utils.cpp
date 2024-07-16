@@ -280,7 +280,7 @@ namespace utils
 				if (cur_num == -1)
 					cur_num = 0;
 				cur_num *= 16;
-				if (cur_num > 4294967295)
+				if (cur_num > 100000000)
 					return (-1);
 				if (std::isdigit(*tmp_str))
 					cur_num += *tmp_str - 48;
@@ -405,6 +405,19 @@ namespace utils
 	{
 		struct kevent change_event;
 		EV_SET(&change_event, fd, EVFILT_READ, EV_ENABLE | EV_ADD, 0, 0, NULL);
+		std::cout << "kq: " << kq << "\n";
+		int ret = kevent(kq, &change_event, 1, NULL, 0, NULL);
+		if (ret < 0)
+		{
+			std::cout << "fail to add read event\n";
+			std::cout << errno << "\n";
+		}
+	}
+
+	void	AddReadEventForFile(int kq, int fd)
+	{
+		struct kevent change_event;
+		EV_SET(&change_event, fd, EVFILT_READ, EV_ADD, 0, 0, NULL);
 		std::cout << "kq: " << kq << "\n";
 		int ret = kevent(kq, &change_event, 1, NULL, 0, NULL);
 		if (ret < 0)

@@ -59,6 +59,7 @@ namespace utils
 	void						AddWriteEvent(int kq, int fd);
 	void						RemoveWriteEvent(int kq, int fd);
 	void						AddReadEvent(int kq, int fd);
+	void						AddReadEventForFile(int kq, int fd);
 	void						RemoveReadEvent(int kq, int fd);
 }
 

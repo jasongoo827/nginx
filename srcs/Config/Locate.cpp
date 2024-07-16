@@ -2,7 +2,7 @@
 #include "Status.hpp"
 #include "Utils.hpp"
 
-Locate::Locate(): autoindex(false), client_body_size(0), dup_mask(0) {}
+Locate::Locate():  client_body_size(150000000), autoindex(false), dup_mask(0) {}
 
 Locate::Locate(const Locate& other): locate_path(other.locate_path), method_vec(other.method_vec),
 index_vec(other.index_vec), redirect_pair(other.redirect_pair), cgi_map(other.cgi_map), root(other.root),
@@ -193,7 +193,7 @@ const std::string& Locate::GetRoot(void) const
 	return root;
 }
 
-const std::map<std::string, std::string> Locate::GetCgiMap(void) const
+const std::map<std::string, std::string>& Locate::GetCgiMap(void) const
 {
 	return cgi_map;
 }
