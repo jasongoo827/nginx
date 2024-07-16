@@ -296,7 +296,7 @@ void	ServerManager::CloseConnectionMap(int fd)
 {
 	struct ::kevent change_event;
 
-	std::cout << "Close connection for fd: " << fd << ", connection : " << connectionmap[fd]->GetClientSocketFd() << "\n";
+	// std::cout << "Close connection for fd: " << fd << ", connection : " << connectionmap[fd]->GetClientSocketFd() << "\n";
 	EV_SET(&change_event, fd, EVFILT_READ, EV_DELETE, 0, 0, NULL);
 	kevent(kq, &change_event, 1, NULL, 0, NULL);
 	EV_SET(&change_event, fd, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);

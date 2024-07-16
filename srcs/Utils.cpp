@@ -224,6 +224,27 @@ namespace utils
 		return res;
 	}
 
+	std::string	DivideNumByCRLF(std::string &data)
+	{
+		std::string res;
+		int			size;
+		size_t pos = data.find("\r\n");
+		if (pos == std::string::npos)
+			return ("");
+		res = data.substr(0, pos);
+		size = hstoi(res);
+		if (size == 0)
+		{
+			if (data.find("\r\n\r\n") == std::string::npos)
+				return ("");
+			else
+				data.erase(0, pos + 4);
+		}
+		else
+			data.erase(0, pos + 2);
+		return (res);
+	}
+
 	std::string	DivideStrByCRLF(std::string &data)
 	{
 		std::string res;
@@ -302,12 +323,13 @@ namespace utils
 
 	int	ReadChunkSize(std::string &data)
 	{
-		std::string	res = DivideStrByCRLF(data);
+		std::string	res = DivideNumByCRLF(data);
 		// std::cout << "res : " << res << '\n';
 		int	size = 0;
 		if (res.empty())
 			return -1;
 		size = hstoi(res);
+
 		return size;
 	}
 
