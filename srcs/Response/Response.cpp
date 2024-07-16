@@ -50,13 +50,14 @@ void	InitializeReasonmap()
 
 //OCCF
 Response::Response()
-: method(GET), status(200), body(""), message(""), message_size(0)
+: method(GET), status(200), body(""), message(""), message_size(0), message_pos(0)
 {
+	body.reserve(150000000);
 	this->header.clear();
 }
 
 Response::Response(const Response& ref)
-: method(ref.method), status(ref.status), body(ref.body), message(ref.message), message_size(ref.message_size)
+: method(ref.method), status(ref.status), body(ref.body), message(ref.message), message_size(ref.message_size), message_pos(ref.message_pos)
 {
 	header = ref.header;
 }
@@ -74,6 +75,7 @@ Response& Response::operator=(const Response& ref)
 	this->body = ref.body;
 	this->message = ref.message;
 	this->message_size = ref.message_size;
+	this->message_pos = ref.message_pos;
 	return (*this);
 }
 
@@ -88,7 +90,7 @@ int	Response::GetStatus()
 	return status;
 }
 
-std::map<std::string, std::string>	Response::GetHeader()
+std::map<std::string, std::string>&	Response::GetHeader()
 {
 	return header;
 }
@@ -106,6 +108,16 @@ const std::string&	Response::GetMessage()
 ssize_t	Response::GetMessageSize()
 {
 	return message.size();
+}
+
+size_t	Response::GetMessagePos()
+{
+	return (message_pos);
+}
+
+void	Response::AddMessagePos(ssize_t sendsize)
+{
+	message_pos += sendsize;
 }
 
 void	Response::SetStatus(int status)
@@ -215,6 +227,7 @@ void	Response::CombineMessage()
 	message = ss.str();// stringstream 의 str 함수는 새롭게 string 객체를 복사해서 생성, 성능저하 이슈 있을수 있음.
 	std::cout << "message last data + 1: " << (int)message[message.size()] << '\n';
 	message_size = message.size();
+	message_pos = 0;
 }
 
 void	Response::AddBody(const std::string& str, ssize_t size)
@@ -301,4 +314,5 @@ void    Response::Cleaner()
     body = "";
     message = "";
     message_size = 0;
+    message_pos = 0;
 }

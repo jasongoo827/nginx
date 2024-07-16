@@ -70,7 +70,7 @@ void	Parser::ParseBody(Request &request)
 {
 	size_t		data_size = 0;
 	std::string	tmp_str = "";
-	std::string	body = request.GetBody();
+	std::string	&body = request.GetBody();
 
 	if (request.GetStatus() != READ_BODY)
 		return ;
@@ -120,7 +120,6 @@ void	Parser::ParseBody(Request &request)
 	}
 	else
 		request.SetStatus(READ_DONE);
-	request.SetBody(body);
 };
 
 void	Parser::ParseTrailer(Request &request)

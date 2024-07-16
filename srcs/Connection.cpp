@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <Session.hpp>
 #include <signal.h>
+#include <algorithm>
 
 Connection::Connection(int kq, int clinet_socket_fd, sockaddr_in client_socket_addr, Config* config_ptr, Session* session)
 : request(), response(), cgi()
@@ -135,7 +136,6 @@ void	Connection::ReadClient()
 	char				buffer[1000000];
 	memset(buffer, 0, 1000000);
 	std::cout << client_socket_fd << "\n";
-	// ssize_t				nread = recv(client_socket_fd, buffer, sizeof(buffer), 0);
 	ssize_t				nread = read(client_socket_fd, buffer, sizeof(buffer));
 
 	if (nread > 0)
@@ -153,25 +153,25 @@ void	Connection::ReadClient()
 		// {
 		// 	std::cout << "\n이번 메시지 끝문자 : " << (int)buffer[i];
 		// }
-		std::cout << "\n이번 메시지 시작문자 : " << (int)buffer[0];
-		std::cout << "\n이번 메시지 끝문자 : " << (int)buffer[nread-1];
-		std::cout << "\n데이터 길이 : " << nread << '\n';
-		std::cout << "이번 읽기 대상\n";
-		if (request.GetStatus() == READ_STARTLINE)
-			std::cout << "READ_STARTLINE\n";
-		if (request.GetStatus() == READ_HEADER)
-			std::cout << "READ_HEADER\n";
-		if (request.GetStatus() == READ_BODY)
-			std::cout << "READ_BODY\n";
-		if (request.GetStatus() == READ_TRAILER)
-			std::cout << "READ_TRAILER\n";
+		// std::cout << "\n이번 메시지 시작문자 : " << (int)buffer[0];
+		// std::cout << "\n이번 메시지 끝문자 : " << (int)buffer[nread-1];
+		// std::cout << "\n데이터 길이 : " << nread << '\n';
+		// std::cout << "이번 읽기 대상\n";
+		// if (request.GetStatus() == READ_STARTLINE)
+		// 	std::cout << "READ_STARTLINE\n";
+		// if (request.GetStatus() == READ_HEADER)
+		// 	std::cout << "READ_HEADER\n";
+		// if (request.GetStatus() == READ_BODY)
+		// 	std::cout << "READ_BODY\n";
+		// if (request.GetStatus() == READ_TRAILER)
+		// 	std::cout << "READ_TRAILER\n";
 		if (parse_data.find("\r\n") != std::string::npos)
 			parser.ParseStartline(request);
-		std::cout << request.GetMethod() << '\n';
+		// std::cout << request.GetMethod() << '\n';
 		if (parse_data.find("\r\n\r\n") != std::string::npos)
 		{
 			parser.ParseHeader(request);
-			std::cout << "CRLFCRLF FOUND\n";
+			// std::cout << "CRLFCRLF FOUND\n";
 		}
 		parser.ParseBody(request);
 		parser.ParseTrailer(request);
@@ -495,9 +495,7 @@ void	Connection::SendMessage()
 	// std::cout << response.GetMessage();
 	std::cout << i++ << " " <<response.GetStatus() << "messagesize: " << buffer.size() << " to " << client_socket_fd <<"\n";
 	std::cout << "---------message end-------------\n";
-	// send(socket_fd, buffer, sizeof(buffer), 0);
-	ssize_t send_size = write(client_socket_fd, buffer.data(), buffer.size());
-	// ssize_t send_size = send(client_socket_fd, buffer.data(), buffer.size(), 0);
+	ssize_t send_size = write(client_socket_fd, buffer.data() + response.GetMessagePos(), buffer.size() - response.GetMessagePos());
 	std::cout << "send_size = " << send_size << "\n";
 	if (send_size < 0)
 	{
@@ -505,7 +503,7 @@ void	Connection::SendMessage()
 		progress = END_CONNECTION;
 		return ;
 	}
-	else if (send_size == response.GetMessageSize())
+	else if (send_size == 0)
 	{
 		//response 완료
 		progress = END_CONNECTION;
@@ -513,8 +511,9 @@ void	Connection::SendMessage()
 	}
 	else
 	{
+		response.AddMessagePos(send_size);
 		//send_size만큼 message에서 지우기
-		response.CutMessage(send_size);
+		// response.CutMessage(send_size);
 		return ;
 	}
 }
@@ -562,14 +561,12 @@ void	Connection::ProcessCgi()
 
 void	Connection::ReadCgi()
 {
-	std::string buff;
-	ssize_t	maxsize = 65536;
+	static std::string buff;
+	ssize_t	maxsize = 1000000;
 	buff.resize(maxsize);
 	ssize_t readsize = read(pipein, &buff[0], maxsize);
 	if (readsize < 0)
 	{
-		if (errno == EAGAIN || errno == EWOULDBLOCK)
-			return ;
 		std::cout << "readcgi error\n";
 		std::cout << errno << "\n";
 		response.make_response_50x(500);
@@ -578,7 +575,7 @@ void	Connection::ReadCgi()
 	}
 	else if (readsize == 0)
 	{
-		std::cout << "readcgi done << "<<readsize<<"\n";
+		std::cout << "readcgi done << " << readsize << "\n";
 		response.AddBody(buff, readsize);
 		response.SplitBodyHeaderData();
 		utils::RemoveReadEvent(kq, pipein);

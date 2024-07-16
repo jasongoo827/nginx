@@ -1,6 +1,9 @@
 #include "Request.hpp"
 
-Request::Request(): status(READ_STARTLINE), bytes_to_read(0){};
+Request::Request(): status(READ_STARTLINE), bytes_to_read(0)
+{
+	body.reserve(150000000);
+};
 
 Request::Request(const Request &copy) : method(copy.method), url(copy.url), version(copy.version), header(copy.header), body(copy.body), status(copy.status), bytes_to_read(copy.bytes_to_read){};
 
@@ -77,7 +80,7 @@ std::map<std::string, std::string>&	Request::GetHeader()
 	return this->header;
 }
 
-const std::string&	Request::GetBody()
+std::string&	Request::GetBody()
 {
 	return this->body;
 }

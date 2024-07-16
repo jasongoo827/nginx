@@ -19,10 +19,12 @@ public:
 
 	enum Method							GetMethod();
 	int									GetStatus();
-	std::map<std::string, std::string>	GetHeader();
+	std::map<std::string, std::string>&	GetHeader();
 	const std::string&					GetBody();
 	const std::string&					GetMessage();
 	ssize_t								GetMessageSize();
+	size_t								GetMessagePos();
+	void								AddMessagePos(ssize_t sendsize);
 	const std::string					GetReason(int status);
 	void								SetStatus(int status);
 
@@ -50,6 +52,7 @@ private:
 	std::string							body;
 	std::string							message;
 	ssize_t								message_size;
+	size_t								message_pos;
 };
 
 #endif
