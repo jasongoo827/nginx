@@ -114,12 +114,12 @@ void	Connection::MainProcess(struct kevent& event)
 	else if (progress == TO_CLIENT && event.filter == EVFILT_WRITE)
 	{
 		std::cout << "SendMessage\n";
-		size_t	trgt_pos = response.GetBody().find("Trgt=");
-		if (trgt_pos != std::string::npos && request.GetMethod() == POST)
-		{
-			session->AddSessionData(response.GetBody().substr(trgt_pos + 5));
-			std::cout << "auth data added: " << response.GetBody().substr(trgt_pos + 5) << '\n';
-		}
+		// size_t	trgt_pos = response.GetBody().find("Trgt=");
+		// if (trgt_pos != std::string::npos && request.GetMethod() == POST)
+		// {
+		// 	session->AddSessionData(response.GetBody().substr(trgt_pos + 5));
+		// 	std::cout << "auth data added: " << response.GetBody().substr(trgt_pos + 5) << '\n';
+		// }
 		SendMessage();
 		return ;
 	}
@@ -135,6 +135,7 @@ void	Connection::ReadClient()
 	char				buffer[1000000];
 	memset(buffer, 0, 1000000);
 	std::cout << client_socket_fd << "\n";
+	// ssize_t				nread = recv(client_socket_fd, buffer, sizeof(buffer), 0);
 	ssize_t				nread = read(client_socket_fd, buffer, sizeof(buffer));
 
 	if (nread > 0)
@@ -147,7 +148,7 @@ void	Connection::ReadClient()
 
 		std::string &parse_data = parser.GetData();
 		parse_data = parse_data + std::string(buffer, nread);
-		std::cout << "\n\n원본 메시지 토탈\n" << parse_data;
+		// std::cout << "\n\n원본 메시지 토탈\n" << parse_data;
 		// for (ssize_t i = 0; i < nread; i++)
 		// {
 		// 	std::cout << "\n이번 메시지 끝문자 : " << (int)buffer[i];
@@ -494,7 +495,9 @@ void	Connection::SendMessage()
 	// std::cout << response.GetMessage();
 	std::cout << i++ << " " <<response.GetStatus() << "messagesize: " << buffer.size() << " to " << client_socket_fd <<"\n";
 	std::cout << "---------message end-------------\n";
+	// send(socket_fd, buffer, sizeof(buffer), 0);
 	ssize_t send_size = write(client_socket_fd, buffer.data(), buffer.size());
+	// ssize_t send_size = send(client_socket_fd, buffer.data(), buffer.size(), 0);
 	std::cout << "send_size = " << send_size << "\n";
 	if (send_size < 0)
 	{
