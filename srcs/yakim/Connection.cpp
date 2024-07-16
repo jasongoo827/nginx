@@ -152,6 +152,8 @@ void	Connection::ReadClient()
 		// {
 		// 	std::cout << "\n이번 메시지 끝문자 : " << (int)buffer[i];
 		// }
+		std::cout << "\n이번 메시지 시작문자 : " << (int)buffer[0];
+		std::cout << "\n이번 메시지 끝문자 : " << (int)buffer[nread-1];
 		std::cout << "\n데이터 길이 : " << nread << '\n';
 		std::cout << "이번 읽기 대상\n";
 		if (request.GetStatus() == READ_STARTLINE)
@@ -177,9 +179,9 @@ void	Connection::ReadClient()
 			progress = READ_CONTINUE;
 		else
 		{
-			std::cout << "\n총 파싱 데이터 len : " << request.GetBody().size() << '\n';
-			std::cout << "파싱 메시지\n";
-			std::cout << request.GetMethod() << " " << request.GetUrl() << " " << request.GetVersion() << '\n';
+			// std::cout << "\n총 파싱 데이터 len : " << request.GetBody().size() << '\n';
+		// 	std::cout << "파싱 메시지\n";
+		// 	std::cout << request.GetMethod() << " " << request.GetUrl() << " " << request.GetVersion() << '\n';
 			// std::map<std::string, std::string> tmp_map = request.GetHeader();
 			// for (std::map<std::string, std::string>::iterator it = tmp_map.begin(); it != tmp_map.end(); ++it)
 			// 	std::cout << it->first << ": \'" << it->second << "\'\n";
@@ -347,7 +349,7 @@ void	Connection::ProcessPost()
 		return ;
 	}
 	std::vector<std::string> cgi = utils::SplitToVector(path, '.');
-	std::string extension = "." + cgi.back();
+	std::string extension = cgi.back();
 	std::cout << "extension: " << extension << "\n";
 	if (locate_ptr->GetCgiMap().find(extension) != locate_ptr->GetCgiMap().end())
 	{

@@ -104,7 +104,7 @@ void	Parser::ParseBody(Request &request)
 			if (request.GetBytesToRead() == 0)
 				request.SetBytesToRead(std::atoi(request.FindValueInHeader("content-length").c_str()));
 			data_size = request.GetBytesToRead();
-			if (request.FindValueInHeader("content-length").empty() || data_size < 0 || 15000000 < data_size) // max_body_size 추후 수정
+			if (request.FindValueInHeader("content-length").empty() || data_size < 0 || 150000000 < data_size)
 			{
 				request.SetStatus(BAD_REQUEST);
 				return ;
@@ -129,46 +129,50 @@ void	Parser::ParseTrailer(Request &request)
 	std::string							trailer_name;
 	std::string							trailer_value;
 
+	std::cout << "TRAILER IN\n";
 	if (request.GetStatus() != READ_TRAILER)
 		return ;
-	if (data.find("\r\n\r\n") != std::string::npos)
+	if (data.find("\r\n\r\n") == std::string::npos)
 		request.SetStatus(READ_DONE);
-	while (!data.empty())
+	else
 	{
-		tmp_str = utils::DivideStrByCRLF(data);
-		if (!tmp_str.empty())
-			break;
-	}
-	if (tmp_str.empty() || trailer_list == "")
-	{
-		request.SetStatus(READ_DONE);
-		return ;
-	}
-	utils::SplitHeaderData(tmp_str, trailer_name, trailer_value);
-	if (trailer_list.find(trailer_name) == std::string::npos || utils::CheckNameChar(trailer_name) || trailer_name == "host")
-	{
-		request.SetStatus(BAD_REQUEST);
-		return ;
-	}
-	request_header.insert(std::make_pair(trailer_name, trailer_value));
-	while (!data.empty())
-	{
-		tmp_str = utils::DivideStrByCRLF(data);
-		if (tmp_str.empty())
-			break ;
-		if (tmp_str[0] == ' ' || tmp_str[0] == '\t')
+		while (!data.empty())
 		{
-			utils::TrimSpaceTap(tmp_str);
-			request_header.rbegin()->second += " " + tmp_str;
+			tmp_str = utils::DivideStrByCRLF(data);
+			if (!tmp_str.empty())
+				break;
 		}
-		else
-			utils::SplitHeaderData(tmp_str, trailer_name, trailer_value);
+		if (tmp_str.empty() || trailer_list == "")
+		{
+			request.SetStatus(READ_DONE);
+			return ;
+		}
+		utils::SplitHeaderData(tmp_str, trailer_name, trailer_value);
 		if (trailer_list.find(trailer_name) == std::string::npos || utils::CheckNameChar(trailer_name) || trailer_name == "host")
 		{
 			request.SetStatus(BAD_REQUEST);
 			return ;
 		}
 		request_header.insert(std::make_pair(trailer_name, trailer_value));
+		while (!data.empty())
+		{
+			tmp_str = utils::DivideStrByCRLF(data);
+			if (tmp_str.empty())
+				break ;
+			if (tmp_str[0] == ' ' || tmp_str[0] == '\t')
+			{
+				utils::TrimSpaceTap(tmp_str);
+				request_header.rbegin()->second += " " + tmp_str;
+			}
+			else
+				utils::SplitHeaderData(tmp_str, trailer_name, trailer_value);
+			if (trailer_list.find(trailer_name) == std::string::npos || utils::CheckNameChar(trailer_name) || trailer_name == "host")
+			{
+				request.SetStatus(BAD_REQUEST);
+				return ;
+			}
+			request_header.insert(std::make_pair(trailer_name, trailer_value));
+		}
 	}
 };
 
