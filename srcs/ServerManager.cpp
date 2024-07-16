@@ -32,7 +32,7 @@ ServerManager& ServerManager::operator=(const ServerManager& ref)
 bool		ServerManager::RunServer(Config* config)
 {
 	struct kevent				change_event;
-	struct kevent				events[20]; /* config에서 파싱 가능하다면 동적 할당 방식으로 변경해야함 */
+	struct kevent				events[60]; /* config에서 파싱 가능하다면 동적 할당 방식으로 변경해야함 */
 
 	while(true)
 	{
@@ -303,7 +303,7 @@ void	ServerManager::CloseConnectionMap(int fd)
 	kevent(kq, &change_event, 1, NULL, 0, NULL);
 	RemoveConnectionMap(fd);
 	close(fd);
-	std::cout << "close connection " << fd << "\n";
+	std::cout << "close connectionmap " << fd << "\n";
 }
 
 void	ServerManager::CloseAllConnection()
@@ -348,7 +348,7 @@ void	ServerManager::CheckConnectionTimeout()
 	std::time(&now);
 	for(size_t i = 0; i < v_connection.size(); i++)
 	{
-		if (std::difftime(now, v_connection[i]->GetTimeval()) > 3)
+		if (std::difftime(now, v_connection[i]->GetTimeval()) > 30)
 		{
 			if (v_connection[i]->GetFileFd())
 			{
@@ -394,8 +394,8 @@ void	ServerManager::AfterProcess(Connection* connection)
 	}
 	else if (connection->GetProgress() == TO_CLIENT)
 	{
-		utils::AddWriteEvent(kq, connection->GetClientSocketFd());
-		std::cout << "AddWriteEvent3 fd: " << connection->GetClientSocketFd() << '\n';
+		// utils::AddWriteEvent(kq, connection->GetClientSocketFd());
+		// std::cout << "AddWriteEvent3 fd: " << connection->GetClientSocketFd() << '\n';
 	}
 	else if (connection->GetProgress() == CGI)
 	{

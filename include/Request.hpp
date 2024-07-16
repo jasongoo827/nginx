@@ -25,7 +25,7 @@ public:
 	const std::string&					GetUrl();
 	const std::string &					GetVersion();
 	std::map<std::string, std::string>&	GetHeader();
-	const std::string&					GetBody();
+	std::string&						GetBody();
 	enum Incomplete						GetStatus();
 	int									GetBytesToRead();
 	void								CutBody(ssize_t size);

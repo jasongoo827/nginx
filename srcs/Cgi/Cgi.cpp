@@ -87,7 +87,7 @@ void	Cgi::setEnv(Request& req, const Server& ser)
 
 	envmap[std::string("USER")] = std::string(std::getenv("USER"));
 	envmap[std::string("PATH")] = std::string(std::getenv("PATH"));
-	envmap[std::string("LANG")] = std::string(std::getenv("LANG"));
+	// envmap[std::string("LANG")] = std::string(std::getenv("LANG"));
 	envmap[std::string("PWD")] = std::string(std::getenv("PWD"));
 
 	envmap[std::string("AUTH_TYPE")] = std::string("");

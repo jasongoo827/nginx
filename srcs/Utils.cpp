@@ -229,6 +229,11 @@ namespace utils
 		std::string res;
 		int			size;
 		size_t pos = data.find("\r\n");
+		while (pos == 0)
+		{
+			data.erase(0, 2);
+			pos = data.find("\r\n");
+		}
 		if (pos == std::string::npos)
 			return ("");
 		res = data.substr(0, pos);
@@ -401,7 +406,6 @@ namespace utils
 	{
 		struct kevent change_event;
 		EV_SET(&change_event, client_socket_fd, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
-		std::cout << "kq: " << kq << "\n";
 		int ret = kevent(kq, &change_event, 1, NULL, 0, NULL);
 		if (ret < 0)
 		{
@@ -414,7 +418,6 @@ namespace utils
 	{
 		struct kevent change_event;
 		EV_SET(&change_event, client_socket_fd, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
-		std::cout << "try to remove event: fd: " << client_socket_fd << "\n";
 		int ret = kevent(kq, &change_event, 1, NULL, 0, NULL);
 		if (ret < 0)
 		{
@@ -427,7 +430,6 @@ namespace utils
 	{
 		struct kevent change_event;
 		EV_SET(&change_event, fd, EVFILT_READ, EV_ENABLE | EV_ADD, 0, 0, NULL);
-		std::cout << "kq: " << kq << "\n";
 		int ret = kevent(kq, &change_event, 1, NULL, 0, NULL);
 		if (ret < 0)
 		{
@@ -440,7 +442,6 @@ namespace utils
 	{
 		struct kevent change_event;
 		EV_SET(&change_event, fd, EVFILT_READ, EV_ADD, 0, 0, NULL);
-		std::cout << "kq: " << kq << "\n";
 		int ret = kevent(kq, &change_event, 1, NULL, 0, NULL);
 		if (ret < 0)
 		{
@@ -453,7 +454,6 @@ namespace utils
 	{
 		struct kevent change_event;
 		EV_SET(&change_event, fd, EVFILT_READ, EV_DELETE, 0, 0, NULL);
-		std::cout << "kq: " << kq << "\n";
 		int ret = kevent(kq, &change_event, 1, NULL, 0, NULL);
 		if (ret < 0)
 		{
