@@ -21,12 +21,15 @@ public:
 	~ServerManager();
 
 	bool					RunServer(Config* config);
-	bool					InitServerAddress(sockaddr_in &addr_serv, int port);
-	bool					InitServerSocket(int &sock_serv, sockaddr_in &addr_serv);
+	bool					CheckValidServer(size_t &sock);
+	void					CloseAllServsock();
+	bool					InitServerAddress(int &kq, sockaddr_in &addr_serv, int port);
+	bool					InitServerSocket(int &kq, int &sock_serv, sockaddr_in &addr_serv);
 	bool					InitClientSocket(int &kq, int &sock_serv, struct ::kevent &change_event, \
 									int &sock_client, sockaddr_in &addr_client, socklen_t addr_client_len);
-	bool					InitKqueue(int &kq, int &sock_serv, struct ::kevent &change_event);
-	bool					CheckEvent(int &kq, struct ::kevent *events, int &event_count, int &sock_serv);
+	bool					InitKqueue(int &kq, int &sock_serv);
+	bool					RegistSockserv(int &kq, int &sock_serv, struct ::kevent &change_event);
+	bool					CheckEvent(int &kq, struct ::kevent *events, int &event_count);
 	void					CloseAllConnection();
 	void					CloseVConnection(int sock_client);
 	void					CloseConnectionMap(int sock_client);
@@ -48,9 +51,11 @@ private:
 	std::map<int, Connection*>				connectionmap;
 	std::vector<Connection*>				v_connection;
 	Session									session;
+	
 	int										kq;
 	int										event_count;
 	int										sock_serv;
+	std::vector<size_t>						v_sock_serv;
 	struct sockaddr_in						addr_serv;
 };
 

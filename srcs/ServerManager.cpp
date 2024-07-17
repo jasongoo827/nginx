@@ -10,7 +10,7 @@
 
 ServerManager::ServerManager()
 {
-
+	kq = 0;
 }
 
 ServerManager::ServerManager(const ServerManager& ref)
@@ -36,16 +36,43 @@ bool		ServerManager::RunServer(Config* config)
 
 	while(true)
 	{
-		/* 서버 어드레스에 대한 정보를 초기화한다. 추후 config 파싱 된 port로 변경 */
-		if (InitServerAddress(addr_serv, config->GetServerVec().front().GetPort()) == false)
+		if (config->GetServerVec().empty())
+		{
+			std::cerr << "No server configuration\n";
+			return false;
+		}
+
+		/* kq를 생성 */
+		if (InitKqueue(kq, sock_serv) == false)
 			continue ;
 
-		/* 서버 소켓을 생성한 뒤 non-blocking 모드로 활성화한다 */
-		if (InitServerSocket(sock_serv, addr_serv) == false)
-			continue ;
+		for (std::vector<Server>::const_iterator it = config->GetServerVec().begin(); it != config->GetServerVec().end(); ++it)
+		{
+			/* 서버 어드레스에 대한 정보를 초기화한다. 추후 config 파싱 된 port로 변경 */
+			if (InitServerAddress(kq, addr_serv, it->GetPort()) == false)
+			{
+				CloseAllServsock();
+				break ;
+			}
 
-		/* kq를 생성하고, 서버 소켓을 kqueue에 등록 */
-		if (InitKqueue(kq, sock_serv, change_event) == false)
+			/* 서버 소켓을 생성한 뒤 non-blocking 모드로 활성화한다 */
+			if (InitServerSocket(kq, sock_serv, addr_serv) == false)
+			{
+				CloseAllServsock();
+				break ;
+			}
+
+			/* 서버 소켓을 kqueue에 등록 */
+			if (RegistSockserv(kq, sock_serv, change_event) == false)
+			{
+				CloseAllServsock();
+				break ;
+			}
+			v_sock_serv.push_back(sock_serv);
+			std::cout << "added sock_serv: " << v_sock_serv.back() << '\n';
+		}
+		std::cout << "v_sock_serv size: " << v_sock_serv.size() << '\n';
+		if (kq == 0)
 			continue ;
 
 		/* 서버 소켓에 연결 요청이 들어온 경우
@@ -53,10 +80,10 @@ bool		ServerManager::RunServer(Config* config)
 		std::cout << "socket setting done\n";
 		while (1)
 		{
-			if (CheckEvent(kq, events, event_count, sock_serv) == false)
+			if (CheckEvent(kq, events, event_count) == false)
 			{
 				std::cout << "no event occured\n";
-				continue ;
+				break ;
 			}
 			std::cout << "event occured " << event_count << "\n";
 			for (int i = 0; i < event_count; ++i)
@@ -65,7 +92,7 @@ bool		ServerManager::RunServer(Config* config)
 					std::cout << events[i].ident << ", write, " << events[i].flags << "\n\n";
 				else if (events[i].filter == EVFILT_READ)
 					std::cout << events[i].ident << ", read, " << events[i].flags << "\n\n";
-				if (events[i].filter == EVFILT_READ && events[i].ident == static_cast<size_t>(sock_serv))
+				if (events[i].filter == EVFILT_READ && CheckValidServer(events[i].ident))
 				{
 					int 				sock_client;
 					struct sockaddr_in	addr_client;
@@ -100,7 +127,7 @@ bool		ServerManager::RunServer(Config* config)
 					connection->UpdateTimeval();
 					AfterProcess(connection);
 				}
-				else if (events[i].flags & EV_EOF && events[i].filter == EVFILT_READ)
+				else if (events[i].flags & EV_EOF)
 				{
 					size_t	idx = 0;
 					for (idx = 0; idx < v_connection.size(); idx++)
@@ -137,7 +164,20 @@ bool		ServerManager::RunServer(Config* config)
 	return (0);
 }
 
-bool	ServerManager::InitServerAddress(sockaddr_in &addr_serv, int port)
+bool	ServerManager::CheckValidServer(size_t &sock)
+{
+	for (std::vector<size_t>::iterator it = v_sock_serv.begin(); it != v_sock_serv.end(); ++it)
+	{
+		if (sock == *it)
+		{
+			sock_serv = sock;
+			return (true);
+		}
+	}
+	return (false);
+}
+
+bool	ServerManager::InitServerAddress(int &kq, sockaddr_in &addr_serv, int port)
 {
 	void	*error = memset(&addr_serv, 0, sizeof(addr_serv));
 	addr_serv.sin_family = AF_INET;
@@ -146,18 +186,22 @@ bool	ServerManager::InitServerAddress(sockaddr_in &addr_serv, int port)
 	if (error == NULL)
 	{
 		std::cerr << "memset error\n";
+		close(kq);
+		kq = 0;
 		return (false);
 	}
 	return (true);
 }
 
-bool	ServerManager::InitServerSocket(int &sock_serv, sockaddr_in &addr_serv)
+bool	ServerManager::InitServerSocket(int &kq, int &sock_serv, sockaddr_in &addr_serv)
 {
 	/* 서버가 사용할 소켓 생성 */
 	sock_serv = socket(AF_INET, SOCK_STREAM, 0);
 	if (sock_serv == -1)
 	{
 		std::cerr << "socket error\n";
+		close(kq);
+		kq = 0;
 		return (false);
 	}
 	/* 서버가 사용하는 소켓을 재활용 가능하도록 설정 */
@@ -166,6 +210,8 @@ bool	ServerManager::InitServerSocket(int &sock_serv, sockaddr_in &addr_serv)
 	{
 		std::cerr << "setsockopt fail\n";
 		close(sock_serv);
+		close(kq);
+		kq = 0;
 		return (false);
 	}
 	/* 서버가 사용할 소켓에 서버의 정보 등록 */
@@ -173,6 +219,8 @@ bool	ServerManager::InitServerSocket(int &sock_serv, sockaddr_in &addr_serv)
 	{
 		std::cerr << "bind error\n";
 		close(sock_serv);
+		close(kq);
+		kq = 0;
 		return (false);
 	}
 	/* 서버 소켓에 대한 통신 활성화 */
@@ -180,6 +228,8 @@ bool	ServerManager::InitServerSocket(int &sock_serv, sockaddr_in &addr_serv)
 	{
 		std::cerr << "listen error\n";
 		close(sock_serv);
+		close(kq);
+		kq = 0;
 		return (false);
 	}
 	/* NonBlocking 설정 */
@@ -187,6 +237,8 @@ bool	ServerManager::InitServerSocket(int &sock_serv, sockaddr_in &addr_serv)
 	{
 		std::cerr << "sock_serv nonblock error\n";
 		close(sock_serv);
+		close(kq);
+		kq = 0;
 		return (false);
 	}
 	return (true);
@@ -199,15 +251,8 @@ bool	ServerManager::InitClientSocket(int &kq, int &sock_serv, struct ::kevent &c
 	sock_client = accept(sock_serv, (sockaddr*)&addr_client, &addr_client_len);
 	if (sock_client < 0)
 	{
-		if (errno == EWOULDBLOCK || errno == EAGAIN) {
-			std::cout << "Connection not found\n";
-			return (false);
-		}
-		else
-		{
-			std::cerr << "accept fail\n";
-			return (false);
-		}
+		std::cerr << "accept fail\n";
+		return (false);
 	}
 	/* 소켓을 재활용 가능하도록 설정 */
 	int enable = 1;
@@ -235,7 +280,7 @@ bool	ServerManager::InitClientSocket(int &kq, int &sock_serv, struct ::kevent &c
 	return (true);
 }
 
-bool	ServerManager::InitKqueue(int &kq, int &sock_serv, struct ::kevent &change_event)
+bool	ServerManager::InitKqueue(int &kq, int &sock_serv)
 {
 	kq = kqueue();
 	if (kq == -1)
@@ -244,29 +289,45 @@ bool	ServerManager::InitKqueue(int &kq, int &sock_serv, struct ::kevent &change_
 		close(sock_serv);
 		return (false);
 	}
+	return (true);
+}
 
+bool	ServerManager::RegistSockserv(int &kq, int &sock_serv, struct ::kevent &change_event)
+{
 	EV_SET(&change_event, sock_serv, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
 	if (::kevent(kq, &change_event, 1, NULL, 0, NULL) == -1)
 	{
 		std::cerr << "sock_serv kevent registration fail\n";
 		close(sock_serv);
 		close(kq);
+		kq = 0;
 		return (false);
 	}
 	return (true);
 }
 
-bool	ServerManager::CheckEvent(int &kq, struct ::kevent *events, int &event_count, int &sock_serv)
+bool	ServerManager::CheckEvent(int &kq, struct ::kevent *events, int &event_count)
 {
 	event_count = kevent(kq, NULL, 0, events, 20, NULL); /* config에서 파싱 가능하다면 20 대신 config 설정 수치로 변경해야함 */
 	if (event_count == -1)
 	{
 		std::cerr << "kevent wait fail\n";
-		close(sock_serv);
+		CloseAllServsock();
 		close(kq);
 		return (false);
 	}
 	return (true);
+}
+
+void	ServerManager::CloseAllServsock()
+{
+	if (v_sock_serv.empty())
+		return ;
+	while (!v_sock_serv.empty())
+	{
+		close(v_sock_serv.back());
+		v_sock_serv.pop_back();
+	}
 }
 
 void	ServerManager::CloseVConnection(int fd)
@@ -310,7 +371,7 @@ void	ServerManager::CloseAllConnection()
 {
 	for (size_t i = 0; i < v_connection.size(); ++i)
 		close(v_connection[i]->GetClientSocketFd());
-	close(sock_serv);
+	CloseAllServsock();
 	close(kq);
 	v_connection.clear();
 	connectionmap.clear();
