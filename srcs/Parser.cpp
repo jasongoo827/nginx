@@ -91,6 +91,8 @@ void	Parser::ParseBody(Request &request)
 				tmp_str = utils::ReadData(data, cur_size);
 				data_size += cur_size;
 				body += tmp_str;
+				if (data_size > 99960000)
+					std::cout << "last data: " << data << '\n';
 				request.SetBytesToRead(cur_size - tmp_str.size());
 				if (request.GetBytesToRead() != 0)
 					break ;

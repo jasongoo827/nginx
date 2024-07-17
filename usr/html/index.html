@@ -76,7 +76,9 @@ section button:hover {
 	<main>
 		<section>
 			<h2>GET</h2>
-			<a href="/cgi/get_script.py"><button>GET BUTTON</button></a>
+			<form action="/cgi/get_script.py" method="post">
+				<button type="submit">GET BUTTON</button>
+			</form>
 		</section>
 		<section>
 			<h2>UPLOAD FILE</h2>

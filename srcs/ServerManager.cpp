@@ -206,7 +206,7 @@ bool	ServerManager::InitServerSocket(int &kq, int &sock_serv, sockaddr_in &addr_
 	}
 	/* 서버가 사용하는 소켓을 재활용 가능하도록 설정 */
 	int enable = 1;
-	if (setsockopt(sock_serv, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) < 0)
+	if (setsockopt(sock_serv, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
 	{
 		std::cerr << "setsockopt fail\n";
 		close(sock_serv);
@@ -215,6 +215,7 @@ bool	ServerManager::InitServerSocket(int &kq, int &sock_serv, sockaddr_in &addr_
 		return (false);
 	}
 	/* 서버가 사용할 소켓에 서버의 정보 등록 */
+	std::cout << "port: " << addr_serv.sin_port << '\n';
 	if (bind(sock_serv, (struct sockaddr*)&addr_serv, sizeof(addr_serv)) == -1)
 	{
 		std::cerr << "bind error\n";

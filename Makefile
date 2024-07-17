@@ -4,22 +4,18 @@ NAME = webserv
 
 CC = c++
 
-CFLAGS = -Wall -Werror -Wextra -Iinclude -std=c++98 #-fsanitize=address -g3
+CFLAGS = -Wall -Werror -Wextra -Iinclude -std=c++98 -fsanitize=address -g3
 
 RM = rm -rf
 
-SRCS = $(wildcard srcs/Config/*.cpp) \
-		$(wildcard srcs/*.cpp) \
-		$(wildcard srcs/Request/*.cpp) \
-		$(wildcard srcs/Response/*.cpp) \
-		$(wildcard srcs/Cgi/*.cpp)
+SRCS = $(wildcard srcs/*.cpp)
 
 OBJS = $(SRCS:%.cpp=%.o)
 
-DEPS_DIR = srcs/deps
+DEPS_DIR = dep
 DEPS = $(SRCS:%.cpp=$(DEPS_DIR)/%.d)
 
-$(shell mkdir -p $(DEPS_DIR))
+$(shell mkdir -p $(DEPS_DIR)/srcs)
 
 -include $(DEPS)
 
@@ -29,15 +25,16 @@ $(NAME): $(OBJS)
 	$(CC) $(CFLAGS) -o $(NAME) $(OBJS)
 
 %.o: %.cpp
-	$(CC) $(CFLAGS) -c $< -o $@ 
+	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
+	@mv -f $*.d $(DEPS_DIR)/$*.d
 
-$(DEPS_DIR)/%.d: %.cpp
-	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -MMD -MP -c $< -o $(<:%.cpp=%.o)
-	@mv -f $(<:%.cpp=%.d) $(DEPS_DIR)/$*.d
+# $(DEPS_DIR)/%.d: %.cpp
+# 	$(CC) $(CFLAGS) -MMD -MP -c $< -o $(<:%.cpp=%.o)
+# 	@mv -f $(<:%.cpp=%.d) $(DEPS_DIR)/$*.d
 
 clean:
 	$(RM) $(OBJS)
+	$(RM) $(wildcard $(DEPS_DIR)/srcs/*.d)
 	$(RM) $(DEPS_DIR)
 
 fclean: clean
