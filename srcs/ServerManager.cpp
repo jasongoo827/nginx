@@ -81,10 +81,7 @@ bool		ServerManager::RunServer(Config* config)
 		while (1)
 		{
 			if (CheckEvent(kq, events, event_count) == false)
-			{
-				std::cout << "no event occured\n";
 				break ;
-			}
 			std::cout << "event occured " << event_count << "\n";
 			for (int i = 0; i < event_count; ++i)
 			{
@@ -313,8 +310,6 @@ bool	ServerManager::CheckEvent(int &kq, struct ::kevent *events, int &event_coun
 	if (event_count == -1)
 	{
 		std::cerr << "kevent wait fail\n";
-		CloseAllServsock();
-		close(kq);
 		return (false);
 	}
 	return (true);
@@ -371,8 +366,24 @@ void	ServerManager::CloseConnectionMap(int fd)
 void	ServerManager::CloseAllConnection()
 {
 	for (size_t i = 0; i < v_connection.size(); ++i)
-		close(v_connection[i]->GetClientSocketFd());
-	CloseAllServsock();
+	{
+		if (v_connection[i]->GetFileFd())
+		{
+			CloseConnectionMap(v_connection[i]->GetFileFd());
+			v_connection[i]->SetFileFd(0);
+		}
+		else if (v_connection[i]->GetPipein())
+		{
+			CloseConnectionMap(v_connection[i]->GetPipein());
+			v_connection[i]->SetPipein(0);
+		}
+		else if (v_connection[i]->GetPipeout())
+		{
+			CloseConnectionMap(v_connection[i]->GetPipeout());
+			v_connection[i]->SetPipeout(0);
+		}
+		CloseVConnection(v_connection[i]->GetClientSocketFd());
+	}
 	close(kq);
 	v_connection.clear();
 	connectionmap.clear();
