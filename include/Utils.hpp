@@ -47,7 +47,7 @@ namespace utils
 	std::string					DivideStrByCRLF(std::string &data);
 	std::string					DivideStrBySpace(std::string &data);
 	void						TrimSpaceTap(std::string &trgt);
-	int							hstoi(const std::string &trgt);
+	ssize_t						hstoi(const std::string &trgt);
 	int							ReadChunkSize(std::string &data);
 	std::string					ReadData(std::string &data, size_t size);
 	bool						CheckNameChar(std::string &data);

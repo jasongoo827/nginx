@@ -28,11 +28,9 @@ Config::~Config()
 
 Status Config::ReadConfig(std::string& file)
 {
-	// std::cout << "ReadConfig\n";
 	if (!utils::CheckExtension(file, ".conf"))
 		return Status::Error("file extension error");
 	
-	// config to string
 	std::ifstream infile(file, std::ios::in | std::ios::binary);
 	if (!infile)
 		return Status::Error("Open error");
@@ -50,7 +48,6 @@ Status Config::ReadConfig(std::string& file)
 	std::string file_content(buffer);
 	delete []buffer;
 
-	// parse config file
 	Status status = ParseConfig(file_content);
 	if (!status.ok())
 		return Status::Error(status.message());
@@ -59,13 +56,11 @@ Status Config::ReadConfig(std::string& file)
 
 Status Config::ParseConfig(std::string& file)
 {
-	// std::cout << "ParseConfig\n";
 	std::istringstream iss(file);
 	std::string str;
 	Status status;
 	while (getline(iss, str, '\n'))
 	{
-		// 중복 체크, 유효성 체크
 		if (str.find('#') != std::string::npos || str.empty() || utils::IsStrSpace(str))
 			continue;
 		if (str.find("server") == std::string::npos && !utils::CheckTerminator(str))
@@ -85,6 +80,8 @@ Status Config::ParseConfig(std::string& file)
 		if (!status.ok())
 			return Status::Error(status.message());
 	}
+	if (!CheckConfigOpt())
+		return Status::Error("Essential config option not included");
 	if (this->server_vec.size() == 0)
 		return Status::Error("no server error");
 	if (CheckPortDup())
@@ -103,6 +100,8 @@ std::string Config::ExtractServerBlock(std::istringstream& iss, std::string& fir
 		server_block += str;
 		server_block += "\n";
 	}
+	if (str != "}")
+		return "";
 	return server_block;
 }
 
@@ -117,10 +116,19 @@ bool	Config::CheckPortDup(void)
 	return false;
 }
 
+bool	Config::CheckConfigOpt(void)
+{
+	if (!(dup_mask & SOFTWARE_NAME))
+		return false;
+	if (!(dup_mask & SOFTWARE_VER))
+		return false;
+	return true;
+}
+
+
 Status Config::ParseServerVariable(std::string& file, std::istringstream& iss)
 {
 	std::string server_block = ExtractServerBlock(iss, file);
-	// std::cout << server_block << '\n';
 	if (server_block.empty())
 		return Status::Error("server block error");
 	Server server;

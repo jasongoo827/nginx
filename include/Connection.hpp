@@ -37,6 +37,8 @@ public:
 	void						ReadCgi();
 	void						SendCgi();
 	void						SendMessage();
+	void						MakeErrorPage(int status);
+	void						MakeDefaultErrorPage(int status);
 	void						SetPipein(int fd);
 	void						SetPipeout(int fd);
 	void						SetFileFd(int fd);
@@ -56,6 +58,8 @@ public:
 	void						UpdateTimeval();
 	void						Cleaner();
 	void						CheckExitCgi();
+	void						SetServerData();
+	void						SetLocateData();
 
 
 private:

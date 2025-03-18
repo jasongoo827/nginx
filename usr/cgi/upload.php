@@ -57,15 +57,34 @@ foreach ($parts as $part)
 	$match = preg_match('/filename="(.*)"/', $headers['Content-Disposition'], $filename_matches);
 	if ($match == 0)
 		$result .= "filename missed";
-	$filename = $filename_matches[1];
-
-	// 파일 내용을 저장
-	$filepath = $pathfileupload . DIRECTORY_SEPARATOR . $filename;
-	$file_handle = fopen($filepath, 'w');
-	fwrite($file_handle, substr($body, 0, -2));
-	fclose($file_handle);
-
-	$result .= "File '{$filename}' uploaded successfully.\nTrgt={$filename}";
+	else
+	{
+		$filename = $filename_matches[1];
+		if ($filename == "")
+		{
+			$result .= "filename missed";
+		}
+		else
+		{
+			if (file_exists($pathfileupload) == false)
+			{
+				mkdir($pathfileupload);
+			}
+			// 파일 내용을 저장
+			$filepath = $pathfileupload . DIRECTORY_SEPARATOR . $filename;
+			$file_handle = fopen($filepath, 'w');
+			if ($file_handle == false)
+			{
+				$result .= "cannot open file";
+			}
+			else
+			{
+				fwrite($file_handle, substr($body, 0, -2));
+				fclose($file_handle);
+				$result .= "File '{$filename}' uploaded successfully.\nTrgt={$filename}";
+			}
+		}
+	}
 }
 
 echo $result;

@@ -102,12 +102,17 @@ section button:hover {
 			fetch(`/upload/${filename}`, {
 				method: 'DELETE',
 			})
-			.then(response => response.text())
-			.then(data => {
-				alert(data);
+			.then(response => {
+				if (!response.ok) {
+					throw new Error('Network response was not ok');
+				}
+				else
+					alert("File deleted");
+				return response.text();
 			})
 			.catch(error => {
 				console.error('Error:', error);
+				alert("File not deleted");
 			});
 		});
 	</script>

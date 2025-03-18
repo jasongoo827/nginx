@@ -16,6 +16,7 @@ public:
 	void								make_response_30x(int, std::string str);
 	void								make_response_40x(int);
 	void								make_response_50x(int);
+	void								MakeErrorBody(int status);
 
 	enum Method							GetMethod();
 	int									GetStatus();
@@ -28,7 +29,7 @@ public:
 	const std::string					GetReason(int status);
 	void								SetStatus(int status);
 
-	void								BodyResize(size_t size);
+	void								BodyResize(ssize_t size);
 
 	void								CutMessage(ssize_t size);
 	void								AddHeader(std::string key, std::string value);
@@ -37,7 +38,7 @@ public:
 	std::string							GenerateCookie(void);
 	std::string							SetExpireDate(void);
 	void								CombineMessage();
-	void								AddBody(const std::string& str, ssize_t size);
+	void								AddBody(const char* buff, ssize_t size);
 	void								CutBody(ssize_t size);
 	void								AutoIndex(const std::string& path);
 	void								SplitBodyHeaderData();

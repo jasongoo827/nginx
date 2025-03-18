@@ -20,14 +20,17 @@ public:
 	void								SetBody(const std::string &body);
 	void								SetStatus(enum Incomplete type);
 	void								SetBytesToRead(int bytes);
+	void								ReserveBody(ssize_t size);
 
 	enum Method							GetMethod();
 	const std::string&					GetUrl();
 	const std::string &					GetVersion();
 	std::map<std::string, std::string>&	GetHeader();
 	std::string&						GetBody();
+	size_t								GetBodyPos();
 	enum Incomplete						GetStatus();
-	int									GetBytesToRead();
+	ssize_t								GetBytesToRead();
+	void								AddBodyPos(size_t body_pos);
 	void								CutBody(ssize_t size);
 	const std::string					FindValueInHeader(const std::string &key);
 	void								Cleaner();
@@ -38,8 +41,9 @@ private:
 	std::string							version;
 	std::map<std::string, std::string>	header;
 	std::string							body;
+	size_t								body_pos;
 	enum Incomplete						status;
-	int									bytes_to_read;
+	ssize_t								bytes_to_read;
 };
 
 #endif

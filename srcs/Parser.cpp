@@ -1,7 +1,7 @@
 #include "Parser.hpp"
 #include "Utils.hpp"
 
-Parser::Parser() : data("") {};
+Parser::Parser() : max_body_size(0), data("") {};
 
 Parser::~Parser(){};
 
@@ -9,9 +9,10 @@ std::string&	Parser::GetData(){
 	return data;
 };
 
-void	Parser::SetMaxBodySize(size_t size)
+void	Parser::SetMaxBodySize(ssize_t size)
 {
-	max_body_size = size;
+	if (max_body_size == 0)
+		max_body_size = size;
 }
 
 void	Parser::ParseStartline(Request &request)
@@ -68,7 +69,7 @@ void	Parser::ParseHeader(Request &request)
 
 void	Parser::ParseBody(Request &request)
 {
-	size_t		data_size = 0;
+	size_t		data_size = request.GetBody().size();
 	std::string	tmp_str = "";
 	std::string	&body = request.GetBody();
 
@@ -78,21 +79,19 @@ void	Parser::ParseBody(Request &request)
 	{
 		if (request.FindValueInHeader("transfer-encoding") == "chunked")
 		{
-			int	cur_size = request.GetBytesToRead();
+			ssize_t	cur_size = request.GetBytesToRead();
 			if (cur_size == 0)
 				cur_size = utils::ReadChunkSize(data);
 			while (cur_size > 0)
 			{
-				if (data_size > 15000000 || cur_size > 1000000)
-				{
-					request.SetStatus(BAD_REQUEST);
-					return ;
-				}
 				tmp_str = utils::ReadData(data, cur_size);
 				data_size += cur_size;
 				body += tmp_str;
-				if (data_size > 99960000)
-					std::cout << "last data: " << data << '\n';
+				if (static_cast<ssize_t>(data_size + cur_size) > max_body_size)
+				{
+					request.SetStatus(READ_DONE);
+					return ;
+				}
 				request.SetBytesToRead(cur_size - tmp_str.size());
 				if (request.GetBytesToRead() != 0)
 					break ;
@@ -100,13 +99,15 @@ void	Parser::ParseBody(Request &request)
 			}
 			if (cur_size == 0)
 				request.SetStatus(READ_TRAILER);
+			else if (cur_size == -2)
+				request.SetStatus(BAD_REQUEST);
 		}
 		else
 		{
 			if (request.GetBytesToRead() == 0)
 				request.SetBytesToRead(std::atoi(request.FindValueInHeader("content-length").c_str()));
 			data_size = request.GetBytesToRead();
-			if (request.FindValueInHeader("content-length").empty() || data_size < 0 || 150000000 < data_size)
+			if (request.FindValueInHeader("content-length").empty() || data_size < 0)
 			{
 				request.SetStatus(BAD_REQUEST);
 				return ;
@@ -114,7 +115,7 @@ void	Parser::ParseBody(Request &request)
 			tmp_str = utils::ReadData(data, data_size);
 			request.SetBytesToRead(data_size - tmp_str.size());
 			body += tmp_str;
-			if (request.GetBytesToRead() == 0)
+			if (request.GetBytesToRead() == 0 || max_body_size < static_cast<ssize_t>(body.size()))
 				request.SetStatus(READ_DONE);
 		}
 	}
@@ -130,7 +131,6 @@ void	Parser::ParseTrailer(Request &request)
 	std::string							trailer_name;
 	std::string							trailer_value;
 
-	std::cout << "TRAILER IN\n";
 	if (request.GetStatus() != READ_TRAILER)
 		return ;
 	if (data.find("\r\n\r\n") == std::string::npos)

@@ -31,13 +31,11 @@ Server::~Server()
 
 Status Server::ParseServerBlock(std::string& server_block)
 {
-	// std::cout << "Server::ParseServerBlock\n";
 	std::istringstream iss(server_block);
 	std::string str;
 	Status status;
 	while (getline(iss, str, '\n'))
 	{
-		// std::cout << str << '\n';
 		if (str.find('#') != std::string::npos || str.empty() || utils::IsStrSpace(str))
 			continue;
 		if (str.find("location /") == std::string::npos && !utils::CheckTerminator(str))
@@ -59,6 +57,10 @@ Status Server::ParseServerBlock(std::string& server_block)
 		if (!status.ok())
 			return Status::Error(status.message());
 	}
+	if (!CheckServerOpt())
+		return Status::Error("Essential server option not included");
+	if (this->locate_vec.size() == 0)
+		return Status::Error("no location error");
 	return Status::OK();
 }
 
@@ -83,7 +85,6 @@ Status	Server::ParsePortVariable(std::string& str)
 	}
 	else
 		status = utils::ParseVariable(this->port, str);
-	// ushrt_max --> header 필요?
 	if (status.ok() && (this->port < 0 || this->port > USHRT_MAX))
 		return Status::Error("port number error");
 	return status;
@@ -109,34 +110,11 @@ Status	Server::ParseErrorPage(std::string& str)
 	return status;
 }
 
-// Status Server::ParseCgiType(std::string& str)
-// {
-// 	if (dup_mask & CGI_EXT)
-// 		return Status::Error("server name duplicate error");
-// 	dup_mask |= CGI_EXT;
-// 	std::string cmp("cgi");
-// 	return utils::ParseVariable(this->cgi_vec, str, cmp);
-// 	// return utils::ParseVariable(this->cgi_type, str);
-// }
-
-// Status	Server::ParseClientSize(std::string& str)
-// {
-// 	if (dup_mask & CLIENT_SIZE)
-// 		return Status::Error("client size duplicate error");
-// 	dup_mask |= CLIENT_SIZE;
-// 	Status status = utils::ParseVariable(this->client_body_size, str);
-// 	if (status.ok() && (this->client_body_size < 0 || this->client_body_size > 1000000 || this->client_body_size > std::numeric_limits<int>::max() || this->client_body_size < std::numeric_limits<int>::min()))
-// 		return Status::Error("Parsing error");
-// 	return status;
-// }
-
 Status	Server::ParseFilePath(std::string& str)
 {
 	if (dup_mask & FILEPATH)
 		return Status::Error("filepath duplicate error");
 	dup_mask |= FILEPATH;
-	// if (status.ok() /*&& !utils::CheckFilePath(this->root)*/)
-	// 	return Status::Error("Parsing error");
 	return utils::ParseVariable(this->file_path, str);
 }
 
@@ -175,6 +153,18 @@ std::string Server::ExtractLocateBlock(std::istringstream& iss, std::string& fir
 	return locate_block;
 }
 
+bool	Server::CheckServerOpt(void)
+{
+	if (!(dup_mask & LISTEN))
+		return false;
+	if (!(dup_mask & SERVER_NAME))
+		return false;
+	if (!(dup_mask & FILEPATH))
+		return false;
+	return true;
+}
+
+
 const std::vector<Locate>& Server::GetLocateVec(void) const
 {
 	return locate_vec;
@@ -195,25 +185,10 @@ const std::string& Server::GetServerName(void) const
 	return server_name;
 }
 
-// const std::string& Server::GetCgiType(void) const
-// {
-// 	return cgi_type;
-// }
-
-// const std::vector<std::string>&	Server::GetCgiVec(void) const
-// {
-// 	return cgi_vec;
-// }
-
 const ssize_t& Server::GetPort(void) const
 {
 	return port;
 }
-
-// const ssize_t& Server::GetClientBodySize(void) const
-// {
-// 	return client_body_size;
-// }
 
 const std::string& Server::GetFilePath(void) const
 {
@@ -229,12 +204,6 @@ void Server::PrintServerInfo(void)
 	for (std::map<int, std::string>::iterator it = error_page.begin(); it != error_page.end(); ++it)
 		std::cout << it->first << " " << it->second << "  ";
 	std::cout << '\n';
-	// std::cout << "client_body_size: " << this->client_body_size << '\n';
-	// std::cout << "cgi type: " << this->cgi_type << '\n';
-	// for (size_t i = 0; i < this->cgi_vec.size(); ++i)
-	// {
-	// 	std::cout << cgi_vec[i] << ' ';
-	// }
 	std::cout << "\nfilepath: " << this->file_path;
 	for (size_t i = 0; i < this->locate_vec.size(); ++i)
 		this->locate_vec[i].PrintLocateInfo();

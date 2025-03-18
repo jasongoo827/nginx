@@ -85,10 +85,14 @@ void	Cgi::setEnv(Request& req, const Server& ser)
 	// only_file = root.substr(start + 1, finish - start);
 	// only_root = root.substr(0, start);
 
-	envmap[std::string("USER")] = std::string(std::getenv("USER"));
-	envmap[std::string("PATH")] = std::string(std::getenv("PATH"));
-	// envmap[std::string("LANG")] = std::string(std::getenv("LANG"));
-	envmap[std::string("PWD")] = std::string(std::getenv("PWD"));
+	if (std::getenv("USER") != NULL)
+		envmap[std::string("USER")] = std::string(std::getenv("USER"));
+	if (std::getenv("PATH") != NULL)
+		envmap[std::string("PATH")] = std::string(std::getenv("PATH"));
+	if (std::getenv("LANG") != NULL)
+		envmap[std::string("LANG")] = std::string(std::getenv("LANG"));
+	if (std::getenv("PWD") != NULL)
+		envmap[std::string("PWD")] = std::string(std::getenv("PWD"));
 
 	envmap[std::string("AUTH_TYPE")] = std::string("");
 	envmap[std::string("CONTENT_LENGTH")] = req.GetHeader()["content-length"];
@@ -121,8 +125,6 @@ Status	Cgi::setPipe()
 	utils::SetNonBlock(pipe_in[1]);
 	utils::SetNonBlock(pipe_out[0]);
 	utils::SetNonBlock(pipe_out[1]);
-	std::cout << "pipein: " << pipe_in[0] << pipe_in[1] << "\n";
-	std::cout << "pipeout: " << pipe_out[0] << pipe_out[1] << "\n";
 	return (Status::OK());
 }
 

@@ -30,6 +30,7 @@ public:
 	Status						ParseCgiVer(std::string& str);
 	std::string 				ExtractServerBlock(std::istringstream& iss, std::string& first_line);
 	bool						CheckPortDup(void);
+	bool						CheckConfigOpt(void);
 	void						PrintConfigInfo(void);
 
 	const std::vector<Server>& 	GetServerVec(void) const;

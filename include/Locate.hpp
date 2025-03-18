@@ -26,6 +26,7 @@ public:
 	Status										ParseAutoIndex(std::string& str);
 	Status										ParseClientSize(std::string& str);
 	Status										ParseCgi(std::string& str);
+	bool										CheckLocateOpt(void);
 	void										PrintLocateInfo(void);
 
 	const std::string&							GetLocatePath(void) const;
@@ -40,14 +41,12 @@ public:
 
 private:
 	std::string							locate_path;
-	// std::vector<std::string> 			method_vec;
 	std::vector<enum Method>			method_vec;
 	std::vector<std::string> 			index_vec;
 	std::pair<int, std::string> 		redirect_pair;
 	std::map<std::string, std::string>	cgi_map;
 	std::string							root;
 	ssize_t								client_body_size;
-	// std::string 						file_path;
 	bool								autoindex;
 	int									dup_mask;
 };

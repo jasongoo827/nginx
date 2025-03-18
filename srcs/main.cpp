@@ -7,34 +7,32 @@
 
 void	InitializeReasonmap();
 
-int main(int argc, char *argv[], char *envp[])
+int main(int argc, char *argv[])
 {
 	InitializeReasonmap();
-	(void)envp;
 	Config config;
+	Status status;
 	if (argc == 2)
 	{
 		std::string file(argv[1]);
-		Status status = config.ReadConfig(file);
+		status = config.ReadConfig(file);
 		if (!status.ok())
 		{
 			std::cerr << status.message() << '\n';
 			return (1);
 		}
-		config.PrintConfigInfo();
 	}
 	else
 	{
 		std::string file("usr/config/nginx.conf");
-		Status status = config.ReadConfig(file);
+		status = config.ReadConfig(file);
 		if (!status.ok())
 		{
 			std::cerr << status.message() << '\n';
 			return (1);
 		}
-		config.PrintConfigInfo();
 	}
-	std::cout << "config done" << std::endl;
+	// config.PrintConfigInfo();
 	ServerManager	servermanager;
 	servermanager.RunServer(&config);
 }

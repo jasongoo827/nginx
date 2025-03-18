@@ -2,7 +2,7 @@
 #include "Status.hpp"
 #include "Utils.hpp"
 
-Locate::Locate():  client_body_size(150000000), autoindex(false), dup_mask(0) {}
+Locate::Locate():  client_body_size(110000000), autoindex(false), dup_mask(0) {}
 
 Locate::Locate(const Locate& other): locate_path(other.locate_path), method_vec(other.method_vec),
 index_vec(other.index_vec), redirect_pair(other.redirect_pair), cgi_map(other.cgi_map), root(other.root),
@@ -33,13 +33,11 @@ Locate::~Locate()
 
 Status Locate::ParseLocateBlock(std::string& locate_block)
 {
-	// std::cout << "Locate::ParseLocateBlock\n";
 	std::istringstream iss(locate_block);
 	std::string str;
 	Status status;
 	while (getline(iss, str, '\n'))
 	{
-		// std::cout << str << '\n';
 		if (str.find('#') != std::string::npos || str.empty() || utils::IsStrSpace(str))
 			continue;
 		if (!utils::CheckTerminator(str))
@@ -65,6 +63,8 @@ Status Locate::ParseLocateBlock(std::string& locate_block)
 		if (!status.ok())
 			return Status::Error("Parsing error");
 	}
+	if (!CheckLocateOpt())
+		return Status::Error("Essential location option not included");
 	return Status::OK();
 }
 
@@ -106,8 +106,6 @@ Status	Locate::ParseRoot(std::string& str)
 	if (dup_mask & ROOT)
 		return Status::Error("root duplicate error");
 	dup_mask |= ROOT;
-	// if (status.ok()/* && !utils::CheckFilePath(this->root)*/)
-	// 	return Status::Error("file path error");
 	return utils::ParseVariable(this->root, str);
 }
 
@@ -145,8 +143,8 @@ Status	Locate::ParseClientSize(std::string& str)
 		return Status::Error("client size duplicate error");
 	dup_mask |= CLIENT_SIZE;
 	Status status = utils::ParseVariable(this->client_body_size, str);
-	if (status.ok() && (this->client_body_size < 0 || this->client_body_size > 1000000 || this->client_body_size > std::numeric_limits<int>::max() || this->client_body_size < std::numeric_limits<int>::min()))
-		return Status::Error("Parsing error");
+	if (status.ok() && (this->client_body_size < 0 || this->client_body_size > 110000000 || this->client_body_size > std::numeric_limits<int>::max() || this->client_body_size < std::numeric_limits<int>::min()))
+		return Status::Error("client body size error");
 	return status;
 }
 
@@ -158,15 +156,13 @@ Status Locate::ParseCgi(std::string& str)
 	return utils::ParseVariable(this->cgi_map, str);
 }
 
-// Status	Locate::ParseFilePath(std::string& str)
-// {
-// 	if (dup_mask & FILEPATH)
-// 		return Status::Error("filepath duplicate error");
-// 	dup_mask |= FILEPATH;
-// 	// if (status.ok() /*&& !utils::CheckFilePath(this->root)*/)
-// 	// 	return Status::Error("Parsing error");
-// 	return utils::ParseVariable(this->file_path, str);
-// }
+bool	Locate::CheckLocateOpt(void)
+{
+	if (!(dup_mask & ROOT))
+		return false;
+	return true;
+}
+
 
 const std::string&	Locate::GetLocatePath(void) const
 {

@@ -12,7 +12,6 @@ bool	Session::CheckValidSession(std::string cli_cookie)
 	if (pos == std::string::npos)
 		return (false);
 	std::string	cookie = cli_cookie.substr(cli_cookie.find('=') + 1);
-	// std::cout << "\n\n" << cookie << "\n\n";
 	SetHashCookie(cookie);
 	if (expire_time.find(hash_cookie) == expire_time.end())
 		return (false);
@@ -57,7 +56,10 @@ bool	Session::CheckAuth(std::string file_name)
 	for (std::vector<std::string>::iterator it = sessions[hash_cookie].begin(); it != sessions[hash_cookie].end(); ++it)
 	{
 		if (*it == file_name)
+		{
+			sessions[hash_cookie].erase(it);
 			return (true);
+		}
 	}
 	return (false);
 }

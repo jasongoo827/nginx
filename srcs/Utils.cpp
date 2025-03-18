@@ -227,7 +227,7 @@ namespace utils
 	std::string	DivideNumByCRLF(std::string &data)
 	{
 		std::string res;
-		int			size;
+		ssize_t	size;
 		size_t pos = data.find("\r\n");
 		while (pos == 0)
 		{
@@ -245,8 +245,10 @@ namespace utils
 			else
 				data.erase(0, pos + 4);
 		}
-		else
+		else if (size > 0)
 			data.erase(0, pos + 2);
+		else
+			return ("error");
 		return (res);
 	}
 
@@ -292,10 +294,10 @@ namespace utils
 			trgt.erase(trgt.size() - 1);
 	}
 
-	int	hstoi(const std::string &trgt)
+	ssize_t	hstoi(const std::string &trgt)
 	{
 		const char *tmp_str = trgt.c_str();
-		int	cur_num = -1;
+		ssize_t	cur_num = -1;
 
 		while (*tmp_str != '\0')
 		{
@@ -306,8 +308,6 @@ namespace utils
 				if (cur_num == -1)
 					cur_num = 0;
 				cur_num *= 16;
-				if (cur_num > 100000000)
-					return (-1);
 				if (std::isdigit(*tmp_str))
 					cur_num += *tmp_str - 48;
 				else if (std::isupper(*tmp_str))
@@ -329,10 +329,11 @@ namespace utils
 	int	ReadChunkSize(std::string &data)
 	{
 		std::string	res = DivideNumByCRLF(data);
-		// std::cout << "res : " << res << '\n';
 		int	size = 0;
 		if (res.empty())
 			return -1;
+		if (res == "error")
+			return -2;
 		size = hstoi(res);
 
 		return size;
@@ -406,60 +407,35 @@ namespace utils
 	{
 		struct kevent change_event;
 		EV_SET(&change_event, client_socket_fd, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
-		int ret = kevent(kq, &change_event, 1, NULL, 0, NULL);
-		if (ret < 0)
-		{
-			std::cout << "fail to add writeevent\n";
-			std::cout << errno << "\n";
-		}
+		kevent(kq, &change_event, 1, NULL, 0, NULL);
 	}
 
 	void	RemoveWriteEvent(int kq, int client_socket_fd)
 	{
 		struct kevent change_event;
 		EV_SET(&change_event, client_socket_fd, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
-		int ret = kevent(kq, &change_event, 1, NULL, 0, NULL);
-		if (ret < 0)
-		{
-			std::cout << "fail to remove writeevent\n";
-			std::cout << errno << "\n";
-		}
+		kevent(kq, &change_event, 1, NULL, 0, NULL);
 	}
 
 	void	AddReadEvent(int kq, int fd)
 	{
 		struct kevent change_event;
 		EV_SET(&change_event, fd, EVFILT_READ, EV_ENABLE | EV_ADD, 0, 0, NULL);
-		int ret = kevent(kq, &change_event, 1, NULL, 0, NULL);
-		if (ret < 0)
-		{
-			std::cout << "fail to add read event\n";
-			std::cout << errno << "\n";
-		}
+		kevent(kq, &change_event, 1, NULL, 0, NULL);
 	}
 
 	void	AddReadEventForFile(int kq, int fd)
 	{
 		struct kevent change_event;
 		EV_SET(&change_event, fd, EVFILT_READ, EV_ADD, 0, 0, NULL);
-		int ret = kevent(kq, &change_event, 1, NULL, 0, NULL);
-		if (ret < 0)
-		{
-			std::cout << "fail to add read event\n";
-			std::cout << errno << "\n";
-		}
+		kevent(kq, &change_event, 1, NULL, 0, NULL);
 	}
 
 	void	RemoveReadEvent(int kq, int fd)
 	{
 		struct kevent change_event;
 		EV_SET(&change_event, fd, EVFILT_READ, EV_DELETE, 0, 0, NULL);
-		int ret = kevent(kq, &change_event, 1, NULL, 0, NULL);
-		if (ret < 0)
-		{
-			std::cout << "fail to remove read event\n";
-			std::cout << errno << "\n";
-		}
+		kevent(kq, &change_event, 1, NULL, 0, NULL);
 	}
 }
 

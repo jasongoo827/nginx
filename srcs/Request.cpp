@@ -2,10 +2,10 @@
 
 Request::Request(): status(READ_STARTLINE), bytes_to_read(0)
 {
-	body.reserve(150000000);
+	body_pos = 0;
 };
 
-Request::Request(const Request &copy) : method(copy.method), url(copy.url), version(copy.version), header(copy.header), body(copy.body), status(copy.status), bytes_to_read(copy.bytes_to_read){};
+Request::Request(const Request &copy) : method(copy.method), url(copy.url), version(copy.version), header(copy.header), body(copy.body), body_pos(copy.body_pos), status(copy.status), bytes_to_read(copy.bytes_to_read){};
 
 Request& Request::operator=(const Request &rhs)
 {
@@ -16,6 +16,7 @@ Request& Request::operator=(const Request &rhs)
 	this->version = rhs.version;
 	this->header = rhs.header;
 	this->body = rhs.body;
+	this->body_pos = rhs.body_pos;
 	this->status = rhs.status;
 	this->bytes_to_read = rhs.bytes_to_read;
 	return *this;
@@ -56,6 +57,13 @@ void	Request::SetStatus(enum Incomplete type)
 {
 	this->status = type;
 };
+
+void   Request::ReserveBody(ssize_t size)
+{
+	if (body.empty())
+		body.reserve(size);
+};
+
 void	Request::SetBytesToRead(int bytes){
 	this->bytes_to_read = bytes;
 }
@@ -95,8 +103,18 @@ enum Incomplete	Request::GetStatus()
 	return this->status;
 }
 
-int	Request::GetBytesToRead(){
+ssize_t	Request::GetBytesToRead(){
 	return this->bytes_to_read;
+}
+
+size_t Request::GetBodyPos()
+{
+	return this->body_pos;
+}
+
+void	Request::AddBodyPos(size_t body_pos)
+{
+	this->body_pos += body_pos;
 }
 
 const std::string	Request::FindValueInHeader(const std::string &key)
@@ -113,6 +131,7 @@ void	Request::Cleaner()
 	version = "";
 	header.clear();
 	body = "";
+	body_pos = 0;
 	status = READ_STARTLINE;
 	bytes_to_read = 0;
 }

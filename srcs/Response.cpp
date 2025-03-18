@@ -52,7 +52,6 @@ void	InitializeReasonmap()
 Response::Response()
 : method(GET), status(200), body(""), message(""), message_size(0), message_pos(0)
 {
-	body.reserve(150000000);
 	this->header.clear();
 }
 
@@ -134,11 +133,15 @@ void	Response::make_response_30x(int status, std::string str)
 void	Response::make_response_40x(int status)
 {
 	this->status = status;
+	body = "";
+	MakeErrorBody(status);
 }
 
 void	Response::make_response_50x(int status)
 {
 	this->status = status;
+	body = "";
+	MakeErrorBody(status);
 }
 	
 void	Response::CutMessage(ssize_t size)
@@ -153,9 +156,9 @@ void	Response::AddHeader(std::string key, std::string value)
 	header[key] = value;
 }
 
-void	Response::BodyResize(size_t size)
+void	Response::BodyResize(ssize_t size)
 {
-	body.resize(size);
+	body.reserve(size);
 	body = "";
 }
 
@@ -164,51 +167,6 @@ void	Response::AddBasicHeader()
 	header["Server"] = "nginx/0.1";//
 	header["Date"] = utils::getTime();
 }
-
-// void	Response::AddCookieHeader()
-// {
-// 	// request에 Cookie 있는지 확인 -> 밖에서 확인
-	
-// 	// 있으면 해당 쿠키가 갖고 있는 data field 리턴
-// 	// key=value; expire; Path =/; HttpOnly;
-
-// 	// 없으면 key=value pair 생성, 나머지 값들도 생성;
-// 	// value는 현재 시간은 ms로 받아와서 생성
-
-// 	// Response header에 set-cookie 추가 - userId = ""
-// 	// SessionID
-// 	header["set-cookie"] = GenerateCookie();
-
-// 	// session cookie는 expire 설정 X
-// 	// cookie는 expire 설정 해주면 브라우저에서 알아서 처리
-// }
-
-// std::string Response::GenerateCookie(void)
-// {
-// 	std::string cookie = "";
-// 	// key=value 생성
-// 	cookie += "key=value;";
-// 	// expire 생성 - 시간 설정 얼마나?
-// 	cookie += "expire=";
-// 	cookie += SetExpireDate();
-// 	// path 생성
-// 	cookie += "path=/;";
-// 	// HttpOnly;
-// 	cookie += "HttpOnly";
-// 	return cookie;
-// }
-
-// std::string Response::SetExpireDate(void)
-// {
-//     std::time_t current_time = std::time(NULL);
-// 	// 원하는 시간 설정 가능
-//     std::time_t future_time = current_time + (15 * 60);
-//     std::tm* time_info = std::gmtime(&future_time);
-
-//     char buffer[100];
-//     std::strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", time_info);
-//     return buffer;
-// }
 
 void	Response::CombineMessage()
 {
@@ -224,15 +182,14 @@ void	Response::CombineMessage()
 	ss << "Content-Length: " << body.size() << "\r\n";
 	ss << "\r\n";
 	ss << body;
-	message = ss.str();// stringstream 의 str 함수는 새롭게 string 객체를 복사해서 생성, 성능저하 이슈 있을수 있음.
-	std::cout << "message last data + 1: " << (int)message[message.size()] << '\n';
+	message = ss.str();
 	message_size = message.size();
 	message_pos = 0;
 }
 
-void	Response::AddBody(const std::string& str, ssize_t size)
+void	Response::AddBody(const char* buff, ssize_t size)
 {
-	body.append(str.substr(0, size));
+	body.append(buff, size);
 }
 
 const std::string	Response::GetReason(int status)
@@ -250,7 +207,6 @@ void Response::AutoIndex(const std::string& path)
 	std::stringstream	str;
 	std::string			tmp;
 
-	std::cout << "AutoIndex for path: " << path << "\n";
 	dirptr = opendir(path.c_str());
 	if (dirptr == NULL)
 	{
@@ -306,13 +262,29 @@ void	Response::SplitBodyHeaderData()
 	}
 };
 
+void	Response::MakeErrorBody(int status)
+{
+	body = "";
+	std::stringstream	str;
+	str << "<html>\r\n<head>\r\n<title>";
+	str << status;
+	str << " " + GetReason(status);
+	str << "</title>\r\n";
+	str << "</head>\r\n<body>\r\n<header>\r\n<h1>";
+	str << status;
+	str << " " + GetReason(status);
+	str << "</h1>\r\n</header>\r\n<main>\r\n<section>\r\n";
+	str << "<h2>Oops! Something Went Wrong.</h2>\r\n<a href='/'>Go to Homepage</a>\r\n</section>\r\n</main>\r\n</body>\r\n</html>";
+	body = str.str();
+}
+
 void    Response::Cleaner()
 {
-    method = GET;
-    status = 200;
-    header.clear();
-    body = "";
-    message = "";
-    message_size = 0;
-    message_pos = 0;
+	method = GET;
+	status = 200;
+	header.clear();
+	body = "";
+	message = "";
+	message_size = 0;
+	message_pos = 0;
 }
