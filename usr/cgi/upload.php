@@ -1,4 +1,4 @@
-#!/usr/bin/php
+#!/opt/homebrew/bin/php
 <?php
 // 환경 변수 사용
 $contentType = getenv('CONTENT_TYPE');
