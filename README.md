@@ -3,6 +3,69 @@ HTTP Server in C++ 98 made by 42Seoul Webserv team "nginx".
 
 ![webserv gif](https://jasongoo827.github.io/assets/webserv.gif)
 
+[English](#english) | [한국어](#korean)
+
+## English
+
+### Overview
+
+A fully functional HTTP/1.1 server implementation in C++98, featuring non-blocking I/O, CGI support, and multiple port listening capabilities. Built from scratch without external libraries, this server handles concurrent connections efficiently using kqueue-based event-driven architecture.
+
+### Key Features
+
+- **HTTP/1.1 Compliant**: Full support for GET, POST, DELETE methods
+- **Non-blocking I/O**: Event-driven architecture using kqueue/poll
+- **CGI Support**: Dynamic content generation with PHP/Python
+- **Multiple Ports**: Simultaneous listening on multiple ports
+- **File Upload**: Support for large file uploads (100MB+)
+- **Virtual Hosts**: Multiple server configurations
+- **Error Handling**: Custom error pages and robust error management
+
+### Technical Achievements
+
+- **Performance**: Handles 1000+ concurrent connections
+- **Throughput**: Processes 5000+ requests/second
+- **Stability**: Zero memory leaks (Valgrind verified)
+- **Stress Testing**: Maintains availability under heavy load
+
+### Architecture
+
+- **Event-Driven Model**: Single-threaded with kqueue for I/O multiplexing
+- **Configuration Parser**: NGINX-like configuration file support
+- **Request Pipeline**: Efficient HTTP request parsing and response generation
+- **Resource Management**: Smart pointer-like RAII for file descriptors
+
+### Build and Run
+
+```bash
+# Clone and build
+git clone https://github.com/jasongoo827/nginx.git
+cd nginx
+make
+
+# Run with configuration
+./webserv [config_file]
+
+# Default configuration is used if no argument provided
+./webserv
+```
+
+### Contributors
+
+- **jgoo**: Configuration file parser, System architecture
+- **dongyeuk**: HTTP request parsing, Method handling
+- **yakim**: HTTP response generation, CGI implementation
+
+### Documentation
+
+- [Web Server Architecture](https://jasongoo827.github.io/blog/webserv)
+- [I/O Multiplexing Implementation](https://jasongoo827.github.io/blog/IOMultiplexing)
+- [HTTP Protocol & Configuration](https://jasongoo827.github.io/blog/HttpMessage)
+
+---
+
+## Korean
+
 ## 1. Requirements
 
 - 서버는 설정 파일을 인자로 받아 실행되며, 인자가 없으면 기본 경로를 사용합니다.
