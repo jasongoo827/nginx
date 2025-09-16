@@ -24,7 +24,6 @@ A fully functional HTTP/1.1 server implementation in C++98, featuring non-blocki
 ### Technical Achievements
 
 - **Performance**: Handles 1000+ concurrent connections
-- **Throughput**: Processes 5000+ requests/second
 - **Stability**: Zero memory leaks (Valgrind verified)
 - **Stress Testing**: Maintains availability under heavy load
 
@@ -33,7 +32,6 @@ A fully functional HTTP/1.1 server implementation in C++98, featuring non-blocki
 - **Event-Driven Model**: Single-threaded with kqueue for I/O multiplexing
 - **Configuration Parser**: NGINX-like configuration file support
 - **Request Pipeline**: Efficient HTTP request parsing and response generation
-- **Resource Management**: Smart pointer-like RAII for file descriptors
 
 ### Build and Run
 
