@@ -60,6 +60,9 @@ public:
 	void						CheckExitCgi();
 	void						SetServerData();
 	void						SetLocateData();
+	int							CreateTempFile(std::string* path_out);
+	void						CleanupTempFile();
+	void						CheckFileBodyComplete();
 
 
 private:
@@ -81,6 +84,13 @@ private:
 	std::time_t				timeval;
 	Session					*session;
 	int						total_len;
+
+	// Direct-to-Disk upload optimization
+	int						upload_temp_fd;
+	std::string				upload_path;
+	bool					use_file_buffer;
+	size_t					body_written;
+	bool					body_started;
 };
 
 #endif
