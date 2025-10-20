@@ -56,10 +56,10 @@ namespace utils
 	bool						SetNonBlock(int &sock_trgt);
 	std::string					MethodToString(enum Method method);
 
-	void						AddWriteEvent(int kq, int fd);
+	void						AddWriteEvent(int kq, int fd, void* udata = NULL);
 	void						RemoveWriteEvent(int kq, int fd);
-	void						AddReadEvent(int kq, int fd);
-	void						AddReadEventForFile(int kq, int fd);
+	void						AddReadEvent(int kq, int fd, void* udata = NULL);
+	void						AddReadEventForFile(int kq, int fd, void* udata = NULL);
 	void						RemoveReadEvent(int kq, int fd);
 }
 

@@ -403,10 +403,10 @@ namespace utils
 			return "other";
 	}
 
-	void	AddWriteEvent(int kq, int client_socket_fd)
+	void	AddWriteEvent(int kq, int client_socket_fd, void* udata)
 	{
 		struct kevent change_event;
-		EV_SET(&change_event, client_socket_fd, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
+		EV_SET(&change_event, client_socket_fd, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, udata);
 		kevent(kq, &change_event, 1, NULL, 0, NULL);
 	}
 
@@ -417,17 +417,17 @@ namespace utils
 		kevent(kq, &change_event, 1, NULL, 0, NULL);
 	}
 
-	void	AddReadEvent(int kq, int fd)
+	void	AddReadEvent(int kq, int fd, void* udata)
 	{
 		struct kevent change_event;
-		EV_SET(&change_event, fd, EVFILT_READ, EV_ENABLE | EV_ADD, 0, 0, NULL);
+		EV_SET(&change_event, fd, EVFILT_READ, EV_ENABLE | EV_ADD, 0, 0, udata);
 		kevent(kq, &change_event, 1, NULL, 0, NULL);
 	}
 
-	void	AddReadEventForFile(int kq, int fd)
+	void	AddReadEventForFile(int kq, int fd, void* udata)
 	{
 		struct kevent change_event;
-		EV_SET(&change_event, fd, EVFILT_READ, EV_ADD, 0, 0, NULL);
+		EV_SET(&change_event, fd, EVFILT_READ, EV_ADD, 0, 0, udata);
 		kevent(kq, &change_event, 1, NULL, 0, NULL);
 	}
 

@@ -451,8 +451,8 @@ void	Connection::ProcessCgi()
 	{
 		pipein = cgi.GetPipeIn();
 		pipeout = cgi.GetPipeOut();
-		utils::AddReadEvent(kq, pipein);
-		utils::AddWriteEvent(kq, pipeout);
+		utils::AddReadEvent(kq, pipein, this);
+		utils::AddWriteEvent(kq, pipeout, this);
 		response.BodyResize(request.GetBody().size() + 700);
 		progress = CGI;
 	}

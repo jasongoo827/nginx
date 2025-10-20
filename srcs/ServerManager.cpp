@@ -70,49 +70,33 @@ bool		ServerManager::RunServer(Config* config)
 				break ;
 			for (int i = 0; i < event_count; ++i)
 			{
-				if (events[i].filter == EVFILT_READ && CheckValidServer(events[i].ident))
+				Connection* connection = static_cast<Connection*>(events[i].udata);
+
+				// 새로운 클라이언트 연결 (서버 소켓 이벤트)
+				if (connection == NULL && events[i].filter == EVFILT_READ && CheckValidServer(events[i].ident))
 				{
 					int 				sock_client;
 					struct sockaddr_in	addr_client;
-					if (InitClientSocket(kq, sock_serv, change_event, sock_client, addr_client, sizeof(addr_client)) == false)
+					if (InitClientSocket(kq, sock_serv, change_event, sock_client, addr_client, sizeof(addr_client), NULL) == false)
 						continue ;
 					Connection *con = new Connection(kq, sock_client, addr_client, config, &session);
 					v_connection.push_back(con);
-					AddConnectionMap(sock_client, v_connection.back());
+					// 이벤트에 Connection 포인터 재등록
+					struct kevent update_event;
+					EV_SET(&update_event, sock_client, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, con);
+					kevent(kq, &update_event, 1, NULL, 0, NULL);
 				}
-				else if (!(events[i].flags & EV_EOF) || (connectionmap.find(static_cast<int>(events[i].ident)) != connectionmap.end() && (events[i].filter == EVFILT_READ && connectionmap[static_cast<int>(events[i].ident)]->GetProgress() == CGI)))
+				// 정상 이벤트 처리
+				else if (connection != NULL && (!(events[i].flags & EV_EOF) || (events[i].filter == EVFILT_READ && connection->GetProgress() == CGI)))
 				{
-					if (connectionmap.find(static_cast<int>(events[i].ident)) == connectionmap.end())
-						continue;
-					Connection* connection = connectionmap[static_cast<int>(events[i].ident)];
 					connection->MainProcess(events[i]);
 					connection->UpdateTimeval();
 					AfterProcess(connection);
 				}
-				else if (events[i].flags & EV_EOF)
+				// 연결 종료 처리 (EV_EOF)
+				else if (connection != NULL && (events[i].flags & EV_EOF))
 				{
-					size_t	idx = 0;
-					for (idx = 0; idx < v_connection.size(); idx++)
-					{
-						if (v_connection[idx]->GetClientSocketFd() == static_cast<int>(events[i].ident))
-							break ;
-					}
-					if (idx == v_connection.size())
-						CloseConnectionMap(events[i].ident);
-					else
-					{
-						int	count = 0;
-						for (std::map<int, Connection*>::iterator it = connectionmap.begin(); it != connectionmap.end(); ++it)
-						{
-							if (it->second->GetClientSocketFd() == static_cast<int>(events[i].ident))
-								count++;
-						}
-						if (count == 1)
-						{
-							CloseConnectionMap(events[i].ident);
-							CloseVConnection(events[i].ident);
-						}
-					}
+					HandleConnectionEOF(connection, events[i].ident);
 				}
 			}
 			CheckConnectionTimeout();
@@ -197,7 +181,7 @@ bool	ServerManager::InitServerSocket(int &kq, int &sock_serv, sockaddr_in &addr_
 	return (true);
 }
 
-bool	ServerManager::InitClientSocket(int &kq, int &sock_serv, struct ::kevent &change_event, int &sock_client, sockaddr_in &addr_client, socklen_t addr_client_len)
+bool	ServerManager::InitClientSocket(int &kq, int &sock_serv, struct ::kevent &change_event, int &sock_client, sockaddr_in &addr_client, socklen_t addr_client_len, void* udata)
 {
 	sock_client = accept(sock_serv, (sockaddr*)&addr_client, &addr_client_len);
 	if (sock_client < 0)
@@ -218,7 +202,7 @@ bool	ServerManager::InitClientSocket(int &kq, int &sock_serv, struct ::kevent &c
 		close(sock_client);
 		return (false);
 	}
-	EV_SET(&change_event, sock_client, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
+	EV_SET(&change_event, sock_client, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, udata);
 	if (::kevent(kq, &change_event, 1, NULL, 0, NULL) == -1) {
 		std::cerr << "sock_serv kevent registration fail\n";
 		close(sock_client);
@@ -283,7 +267,6 @@ void	ServerManager::CloseVConnection(int fd)
 	kevent(kq, &change_event, 1, NULL, 0, NULL);
 	EV_SET(&change_event, fd, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
 	kevent(kq, &change_event, 1, NULL, 0, NULL);
-	RemoveConnectionMap(fd);
 	for (size_t i = 0; i < v_connection.size(); i++)
 	{
 		if (v_connection[i]->GetClientSocketFd() == fd)
@@ -296,7 +279,7 @@ void	ServerManager::CloseVConnection(int fd)
 	close(fd);
 }
 
-void	ServerManager::CloseConnectionMap(int fd)
+void	ServerManager::RemoveEventAndClose(int fd)
 {
 	struct ::kevent change_event;
 
@@ -304,7 +287,6 @@ void	ServerManager::CloseConnectionMap(int fd)
 	kevent(kq, &change_event, 1, NULL, 0, NULL);
 	EV_SET(&change_event, fd, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
 	kevent(kq, &change_event, 1, NULL, 0, NULL);
-	RemoveConnectionMap(fd);
 	close(fd);
 }
 
@@ -314,34 +296,23 @@ void	ServerManager::CloseAllConnection()
 	{
 		if (v_connection[i]->GetFileFd())
 		{
-			CloseConnectionMap(v_connection[i]->GetFileFd());
+			RemoveEventAndClose(v_connection[i]->GetFileFd());
 			v_connection[i]->SetFileFd(0);
 		}
 		else if (v_connection[i]->GetPipein())
 		{
-			CloseConnectionMap(v_connection[i]->GetPipein());
+			RemoveEventAndClose(v_connection[i]->GetPipein());
 			v_connection[i]->SetPipein(0);
 		}
 		else if (v_connection[i]->GetPipeout())
 		{
-			CloseConnectionMap(v_connection[i]->GetPipeout());
+			RemoveEventAndClose(v_connection[i]->GetPipeout());
 			v_connection[i]->SetPipeout(0);
 		}
 		CloseVConnection(v_connection[i]->GetClientSocketFd());
 	}
 	close(kq);
 	v_connection.clear();
-	connectionmap.clear();
-}
-
-void		ServerManager::AddConnectionMap(int fd, Connection* connection)
-{
-	connectionmap[fd] = connection;
-}
-
-void		ServerManager::RemoveConnectionMap(int fd)
-{
-	connectionmap.erase(fd);
 }
 
 void	ServerManager::managerstatus()
@@ -350,9 +321,6 @@ void	ServerManager::managerstatus()
 	std::cout << "vconnection size = " << v_connection.size() << "\n";
 	for (size_t i = 0; i < v_connection.size(); i++)
 		std::cout << "connection" << i << ": " << "clientsocket: " << v_connection[i]->GetClientSocketFd() << "\n";
-	std::cout << "connectionmap size = " << connectionmap.size() << "\n";
-	for (std::map<int, Connection*>::iterator it = connectionmap.begin(); it != connectionmap.end(); it++)
-		std::cout << "connectionmap: "<< it->first << " clientsocket: " << it->second->GetClientSocketFd() <<  "\n";
 	std::cout << "------------------------------------------\n";
 }
 
@@ -366,17 +334,17 @@ void	ServerManager::CheckConnectionTimeout()
 		{
 			if (v_connection[i]->GetFileFd())
 			{
-				CloseConnectionMap(v_connection[i]->GetFileFd());
+				RemoveEventAndClose(v_connection[i]->GetFileFd());
 				v_connection[i]->SetFileFd(0);
 			}
 			else if (v_connection[i]->GetPipein())
 			{
-				CloseConnectionMap(v_connection[i]->GetPipein());
+				RemoveEventAndClose(v_connection[i]->GetPipein());
 				v_connection[i]->SetPipein(0);
 			}
 			else if (v_connection[i]->GetPipeout())
 			{
-				CloseConnectionMap(v_connection[i]->GetPipeout());
+				RemoveEventAndClose(v_connection[i]->GetPipeout());
 				v_connection[i]->SetPipeout(0);
 			}
 			CloseVConnection(v_connection[i]->GetClientSocketFd());
@@ -393,40 +361,38 @@ void	ServerManager::AfterProcess(Connection* connection)
 		else
 		{
 			utils::RemoveWriteEvent(kq, connection->GetClientSocketFd());
-			utils::AddReadEvent(kq, connection->GetClientSocketFd());
+			utils::AddReadEvent(kq, connection->GetClientSocketFd(), connection);
 			Scaffold(connection);
 		}
 	}
 	else if (connection->GetProgress() == FROM_FILE)
 	{
-		utils::AddReadEventForFile(kq, connection->GetFileFd());
-		AddConnectionMap(connection->GetFileFd(), connection);
+		utils::AddReadEventForFile(kq, connection->GetFileFd(), connection);
 	}
 	else if (connection->GetProgress() == CGI)
 	{
-		AddConnectionMap(connection->GetPipeout(), connection);
-		AddConnectionMap(connection->GetPipein(), connection);
+		// udata에 이미 connection 포인터가 설정됨 (Connection.cpp에서 처리)
 	}
 	else if (connection->GetProgress() == COMBINE)
 	{
 		if (connection->GetPipeout())
 		{
 			utils::RemoveWriteEvent(kq, connection->GetPipeout());
-			CloseConnectionMap(connection->GetPipeout());
+			RemoveEventAndClose(connection->GetPipeout());
 			connection->SetPipeout(0);
 		}
 		if (connection->GetFileFd())
 		{
-			CloseConnectionMap(connection->GetFileFd());
+			RemoveEventAndClose(connection->GetFileFd());
 			connection->SetFileFd(0);
 		}
 		if (connection->GetPipein())
 		{
-			CloseConnectionMap(connection->GetPipein());
+			RemoveEventAndClose(connection->GetPipein());
 			connection->SetPipein(0);
 		}
 		connection->CheckExitCgi();
-		utils::AddWriteEvent(kq, connection->GetClientSocketFd());
+		utils::AddWriteEvent(kq, connection->GetClientSocketFd(), connection);
 		utils::RemoveReadEvent(kq, connection->GetClientSocketFd());
 		connection->GetResponse().CombineMessage();
 		connection->SetProgress(TO_CLIENT);
@@ -441,5 +407,44 @@ void	ServerManager::Scaffold(Connection* connection)
 	connection->GetResponse().Cleaner();
 	connection->Cleaner();
 	utils::RemoveReadEvent(kq, connection->GetClientSocketFd());
-	utils::AddReadEvent(kq, connection->GetClientSocketFd());
+	utils::AddReadEvent(kq, connection->GetClientSocketFd(), connection);
+}
+
+void	ServerManager::HandleConnectionEOF(Connection* connection, int fd)
+{
+	// v_connection에서 해당 connection 찾기
+	bool found_in_vector = false;
+	for (size_t idx = 0; idx < v_connection.size(); idx++)
+	{
+		if (v_connection[idx] == connection)
+		{
+			found_in_vector = true;
+			break;
+		}
+	}
+
+	// v_connection에 없으면 단순히 fd만 닫기
+	if (!found_in_vector)
+	{
+		RemoveEventAndClose(fd);
+		return;
+	}
+
+	// v_connection에 있으면 해당 Connection의 다른 fd 개수 확인
+	int count = 0;
+	if (connection->GetClientSocketFd() == fd)
+		count++;
+	if (connection->GetFileFd() && connection->GetFileFd() == fd)
+		count++;
+	if (connection->GetPipein() && connection->GetPipein() == fd)
+		count++;
+	if (connection->GetPipeout() && connection->GetPipeout() == fd)
+		count++;
+
+	// fd 닫기 (공통)
+	RemoveEventAndClose(fd);
+
+	// 해당 fd가 이 connection의 유일한 fd인 경우 Connection도 정리
+	if (count == 1)
+		CloseVConnection(connection->GetClientSocketFd());
 }
