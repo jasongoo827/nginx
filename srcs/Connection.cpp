@@ -28,6 +28,10 @@ Connection::Connection(int kq, int clinet_socket_fd, sockaddr_in client_socket_a
 	this->pipein = 0;
 	this->pipeout = 0;
 	std::time(&timeval);
+	this->upload_temp_fd = -1;
+	this->use_file_buffer = false;
+	this->body_written = 0;
+	this->body_started = false;
 	this->session = session;
 	this->total_len = 0;
 	this->kq = kq;
@@ -52,7 +56,7 @@ Connection::Connection(const Connection& ref)
 
 Connection::~Connection()
 {
-
+	CleanupTempFile();
 }
 
 Connection&	Connection::operator=(const Connection& ref)
@@ -126,31 +130,98 @@ void	Connection::MainProcess(struct kevent& event)
 
 void	Connection::ReadClient()
 {
-	char				buffer[1300000];
+	char				buffer[65536];  // 64KB (최적화된 크기)
 	ssize_t				nread = read(client_socket_fd, buffer, sizeof(buffer));
 
 	if (nread > 0)
 	{
 		std::string &parse_data = parser.GetData();
-		parse_data = parse_data + std::string(buffer, nread);
-		// std::cout << "\n\n원본 메시지 토탈\n" << parse_data;
-		// for (ssize_t i = 0; i < nread; i++)
-		// {
-		// 	std::cout << "이번 메시지 : " << (int)buffer[i];
-		// }
-		if (parse_data.find("\r\n") != std::string::npos)
-			parser.ParseStartline(request);
-		if (parse_data.find("\r\n\r\n") != std::string::npos)
+
+		// 헤더 파싱 단계
+		if (request.GetStatus() == READ_STARTLINE ||
+		    request.GetStatus() == READ_HEADER)
 		{
-			parser.ParseHeader(request);
-			if (server_ptr == NULL)
-				SetServerData();
-			if (locate_ptr == NULL)
-				SetLocateData();
-			parser.SetMaxBodySize(locate_ptr->GetClientBodySize());
-			request.ReserveBody(locate_ptr->GetClientBodySize());
+			parse_data.append(buffer, nread);
+
+			if (parse_data.find("\r\n") != std::string::npos)
+				parser.ParseStartline(request);
+			if (parse_data.find("\r\n\r\n") != std::string::npos)
+			{
+				parser.ParseHeader(request);
+				if (server_ptr == NULL)
+					SetServerData();
+				if (locate_ptr == NULL)
+					SetLocateData();
+				parser.SetMaxBodySize(locate_ptr->GetClientBodySize());
+				request.ReserveBody(locate_ptr->GetClientBodySize());
+			}
 		}
-		parser.ParseBody(request);
+		// Body 처리: Direct-to-Disk 적용
+		else if (request.GetStatus() == READ_BODY)
+		{
+			// 첫 Body 수신 시 결정
+			if (!body_started)
+			{
+				body_started = true;
+				ssize_t content_length = std::atoi(
+					request.FindValueInHeader("content-length").c_str());
+
+				// 1MB 이상이면 파일로, 작으면 메모리로
+				if (content_length > 1048576)  // 1MB
+				{
+					use_file_buffer = true;
+					upload_temp_fd = CreateTempFile(&upload_path);
+
+					if (upload_temp_fd < 0)
+					{
+						use_file_buffer = false;
+						request.GetBody().reserve(content_length);
+					}
+					else
+					{
+						// parse_data에 남은 body 데이터가 있으면 먼저 쓰기
+						if (!parse_data.empty())
+						{
+							write(upload_temp_fd, parse_data.c_str(), parse_data.size());
+							body_written += parse_data.size();
+							parse_data.clear();
+						}
+					}
+				}
+				else
+				{
+					use_file_buffer = false;
+					if (content_length > 0)
+						request.GetBody().reserve(content_length);
+				}
+			}
+
+			// Body 데이터 처리
+			if (use_file_buffer)
+			{
+				// 파일로 직접 쓰기 (메모리 사용 최소화!)
+				ssize_t written = write(upload_temp_fd, buffer, nread);
+				if (written > 0)
+					body_written += written;
+			}
+			else
+			{
+				// 작은 파일: 기존처럼 메모리에
+				parse_data.append(buffer, nread);
+			}
+		}
+		else
+		{
+			// Trailer 등: 기존 로직
+			parse_data.append(buffer, nread);
+		}
+
+		// 파싱 로직 (기존과 동일)
+		if (!use_file_buffer)
+			parser.ParseBody(request);
+		else
+			CheckFileBodyComplete();
+
 		parser.ParseTrailer(request);
 		if (request.GetStatus() != READ_DONE && request.GetStatus() != BAD_REQUEST)
 			progress = READ_CONTINUE;
@@ -680,11 +751,16 @@ Parser&	Connection::GetParser()
 
 void	Connection::Cleaner()
 {
+	CleanupTempFile();
 	progress = FROM_CLIENT;
 	file_fd = 0;
 	pipein = 0;
 	pipeout = 0;
 	total_len = 0;
+	upload_temp_fd = -1;
+	use_file_buffer = false;
+	body_written = 0;
+	body_started = false;
 	server_ptr = NULL;
 	locate_ptr = NULL;
 }
@@ -722,5 +798,43 @@ void   Connection::SetLocateData()
 				locate_ptr = &locate_vec[i];
 			}
 		}
+	}
+}
+// Direct-to-Disk helper functions
+int Connection::CreateTempFile(std::string* path_out)
+{
+	char temp_template[] = "/tmp/webserv_upload_XXXXXX";
+	int fd = mkstemp(temp_template);
+
+	if (fd < 0)
+		return -1;
+
+	*path_out = temp_template;
+	return fd;
+}
+
+void Connection::CleanupTempFile()
+{
+	if (upload_temp_fd > 0)
+	{
+		close(upload_temp_fd);
+		upload_temp_fd = -1;
+	}
+
+	if (!upload_path.empty())
+	{
+		unlink(upload_path.c_str());
+		upload_path.clear();
+	}
+}
+
+void Connection::CheckFileBodyComplete()
+{
+	ssize_t content_length = std::atoi(
+		request.FindValueInHeader("content-length").c_str());
+
+	if (body_written >= static_cast<size_t>(content_length))
+	{
+		request.SetStatus(READ_DONE);
 	}
 }
